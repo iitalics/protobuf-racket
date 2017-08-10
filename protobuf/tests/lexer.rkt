@@ -60,4 +60,32 @@
              (token-FLOATLIT 400.0)
              (token-FLOATLIT 0.5)
              ])
+
+  ;; test delimeters
+  (lex-test "(){}[] ( ) (hi) (0.0,) =([;4}])"
+            check-equal?
+            [
+             'LP 'RP
+             'LC 'RC
+             'LB 'RB
+             'LP 'RP
+             'LP (token-IDENT "hi") 'RP
+             'LP (token-FLOATLIT 0.0) 'COMMA 'RP
+             'EQ 'LP 'LB 'SEMI (token-INTLIT 4) 'RC 'RB 'RP
+             ])
+
+  ;; test comments
+  (lex-test "message hello {"
+            ""
+            "  // this is a message saying hello"
+            "  string greeting; // this is the greeting"
+            "}"
+            ""
+            "// some comment at the end of the file"
+            check-equal?
+            [
+             'KW-message (token-IDENT "hello") 'LC
+             'KW-string (token-IDENT "greeting") 'SEMI
+             'RC
+             ])
   )
