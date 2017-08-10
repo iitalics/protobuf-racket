@@ -56,9 +56,11 @@
 
 ;    other
 (define-lex-abbrev comment
-  (:seq "//"
-        (complement (:: any-string #\newline any-string))
-        (:or #\newline nothing)))
+  (:or (:seq "//"
+             (complement (:: any-string #\newline any-string))
+             #\newline)
+       (:seq "//"
+             (complement (:: any-string #\newline any-string)))))
 
 
 

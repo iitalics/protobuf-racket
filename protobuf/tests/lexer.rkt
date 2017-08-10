@@ -88,4 +88,10 @@
              'KW-string (token-IDENT "greeting") 'SEMI
              'RC
              ])
+
+  (check-exn
+   (λ (x) (eq? x 'eof))
+   (λ ()
+     (tokenize (open-input-string "// eof of file here =>"))))
+
   )
