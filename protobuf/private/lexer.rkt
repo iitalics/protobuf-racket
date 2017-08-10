@@ -10,8 +10,10 @@
 (provide tokenize ; (port -> position-token)
          in-tokens
          protobuf-tokens
-         protobuf-empty-tokens)
-
+         protobuf-empty-tokens
+         token-IDENT
+         token-INTLIT
+         token-FLOATLIT)
 
 ;; using as reference:
 ;;   https://developers.google.com/protocol-buffers/docs/reference/proto3-spec
