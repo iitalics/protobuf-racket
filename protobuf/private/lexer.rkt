@@ -39,11 +39,20 @@
 (define-lex-abbrevs
   [dec-lit (:seq (:/ #\1 #\9) (:* dec-dig))]
   [oct-lit (:seq #\0 (:* oct-dig))]
-  [hex-lit (:seq #\0 (:or #\x #\X) (:* hex-dig))]
-  [float-lit (:seq (:+ dec-dig) #\. (:* dec-dig)
-                   (:? (:or #\e #\E)
-                       (:? (:or #\+ #\-))
-                       (:+ dec-dig)))])
+  [hex-lit (:seq #\0 (:or #\x #\X) (:* hex-dig))])
+
+(define-lex-abbrevs
+  [dec-pt (:seq #\. (:+ dec-dig))]
+  [exponent (:seq (:or #\e #\E)
+                  (:? (:or #\+ #\-))
+                  (:+ dec-dig))])
+
+(define-lex-abbrev float-lit
+  (:seq (:+ dec-dig)
+        (:or (:seq dec-pt exponent)
+             exponent
+             dec-pt)))
+
 
 ;    other
 (define-lex-abbrev comment
@@ -90,8 +99,8 @@
    package option
    message enum oneof map
    reserved optional repeated
-   double float int32 int64 uint32
-   sint32 sint64 fixed32 fixed64 sfixed32 sfixed64
+   double float int32 int64 uint32 uint64 sint32 sint64
+   fixed32 fixed64 sfixed32 sfixed64
    bool string bytes
    service rpc))
 
@@ -110,10 +119,9 @@
    [float-lit
     (token-FLOATLIT (string->number lexeme))]
 
-   [(:or dec-lit
-         oct-lit
-         hex-lit)
-    (token-INTLIT (string->number lexeme))]
+   [dec-lit (token-INTLIT (string->number lexeme))]
+   [oct-lit (token-INTLIT (string->number lexeme 8))]
+   [hex-lit (token-INTLIT (string->number (substring lexeme 2) 16))]
 
    [ident
     (hash-ref protobuf-keywords

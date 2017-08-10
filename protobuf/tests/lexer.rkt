@@ -47,7 +47,7 @@
              ])
 
   ;; test numbers
-  (lex-test "1234 0123 0x123 0 4.0 5.0e3"
+  (lex-test "1234 0123 0x123 0 4.0 5.0e3 4e2 4e+2 5e-1"
             check-equal?
             [
              (token-INTLIT 1234)
@@ -56,5 +56,8 @@
              (token-INTLIT 0)
              (token-FLOATLIT 4.0)
              (token-FLOATLIT 5000.0)
+             (token-FLOATLIT 400.0)
+             (token-FLOATLIT 400.0)
+             (token-FLOATLIT 0.5)
              ])
   )
