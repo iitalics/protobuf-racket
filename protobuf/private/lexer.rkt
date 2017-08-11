@@ -69,18 +69,20 @@
   (syntax-parser
     [(_ group-id
         #:delims delim-hash delim-lex-abbrev ((del TOK) ...)
-        #:keywords kw-hash (kw ...))
+        #:keywords kw-hash (kw ...)
+        #:other (OTHER ...))
      #:with (KW-kw ...) (stx-map (λ (x) (format-id x "KW-~A" x)) #'[kw ...])
      #:with (kw/str ...) (stx-map (λ (x) (symbol->string (syntax->datum x))) #'[kw ...])
      #'(begin
          (define delim-hash (make-hash '([del . TOK] ...)))
          (define kw-hash (make-hash '([kw/str . KW-kw] ...)))
-         (define-empty-tokens group-id (TOK ... KW-kw ...))
+         (define-empty-tokens group-id (TOK ... KW-kw ... OTHER ...))
          (define-lex-abbrev delim-lex-abbrev (union del ...)))]))
 
 
 (define-tokens protobuf-tokens
   (IDENT INTLIT FLOATLIT))
+
 
 (define-delims/kws protobuf-empty-tokens
   #:delims protobuf-delims delim
@@ -93,6 +95,7 @@
    [#\+ PLUS]
    [#\- MINUS]
    [#\= EQ])
+
   #:keywords protobuf-keywords
   (syntax
    true false
@@ -103,7 +106,9 @@
    double float int32 int64 uint32 uint64 sint32 sint64
    fixed32 fixed64 sfixed32 sfixed64
    bool string bytes
-   service rpc))
+   service rpc)
+
+  #:other (EOF))
 
 
 ;;    actual lexer here
@@ -129,12 +134,18 @@
               lexeme
               (λ () (token-IDENT lexeme)))]
 
-   [(eof)
-    (raise 'eof)]))
+   [(eof) (token-EOF)]))
 
-(define (in-tokens [port (current-input-port)])
-  (let/ec k
-    (let ([t (with-handlers ([(λ (x) (eq? 'eof x))
-                              (λ (e) (k '()))])
-               (tokenize port))])
-      (stream-cons t (in-tokens port)))))
+(define (EOF? x)
+  (equal? (position-token-token x) 'EOF))
+
+(define (in-tokens [port (current-input-port)]
+                   #:include-eof? [inc-eof? #f])
+  (make-do-sequence
+   (λ ()
+     (values tokenize
+             values
+             port
+             #f
+             (λ (t) (if (EOF? t) inc-eof? #t))
+             (λ (p t) (not (EOF? t)))))))

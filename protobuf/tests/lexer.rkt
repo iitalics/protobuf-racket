@@ -10,13 +10,14 @@
     (syntax-parser
       [(_ in-str-lines ...
           test
-          [out ...])
-       #:with ((strs ...) ...) #'((in-str-lines "\n") ...)
+          [out ...]
+          seq-options ...)
        #'(check-not-exn
           (λ ()
             (test (for/list ([p (in-tokens
                                  (open-input-string
-                                  (string-append strs ... ...)))])
+                                  (string-join '(in-str-lines ...) "\n"))
+                                 seq-options ...)])
                     (position-token-token p))
                   (list out ...))))]))
 
@@ -89,9 +90,9 @@
              'RC
              ])
 
-  (check-exn
-   (λ (x) (eq? x 'eof))
-   (λ ()
-     (tokenize (open-input-string "// eof of file here =>"))))
+  (lex-test "// eof of file here =>"
+            check-equal?
+            [ 'EOF ]
+            #:include-eof? #t)
 
   )
