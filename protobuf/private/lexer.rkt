@@ -102,7 +102,7 @@
   #:keywords protobuf-keywords
   (syntax
    true false
-   import weak public
+   import public
    package option
    message enum oneof map
    reserved required optional repeated
