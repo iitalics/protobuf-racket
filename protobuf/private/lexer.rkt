@@ -70,7 +70,7 @@
     [(_ group-id
         #:delims delim-hash delim-lex-abbrev ((del TOK) ...)
         #:keywords kw-hash (kw ...))
-     #:with (KW-kw ...) (stx-map (λ (x) (format-id #'x "KW-~A" x)) #'[kw ...])
+     #:with (KW-kw ...) (stx-map (λ (x) (format-id x "KW-~A" x)) #'[kw ...])
      #:with (kw/str ...) (stx-map (λ (x) (symbol->string (syntax->datum x))) #'[kw ...])
      #'(begin
          (define delim-hash (make-hash '([del . TOK] ...)))
