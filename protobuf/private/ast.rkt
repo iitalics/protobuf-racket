@@ -1,18 +1,16 @@
 #lang racket/base
 (require (for-syntax racket/base
                      syntax/parse)
-         racket/contract
-         parser-tools/lex)
+         racket/contract)
 
 (provide (contract-out
-          (struct ast ([pos position?])))
-         (struct-out position)
+          (struct ast ([loc srcloc?])))
          ast:options?
          ast:type?
          empty-options)
 
 
-(struct ast (pos) #:transparent)
+(struct ast (loc) #:transparent)
 
 (define-syntax-rule (define-ast-struct struct-name ([field contract] ...))
   (begin
@@ -21,7 +19,7 @@
       #:transparent)
     (provide (contract-out
               (struct (struct-name ast)
-                ([pos position?]
+                ([loc srcloc?]
                  [field contract] ...))))))
 
 
@@ -36,10 +34,18 @@
 
 (define-ast-struct ast:file
   ([path             path?]
-   [package          string?]
+   [package          ast:package?]
+   [imports          (listof ast:import?)]
    [message-types    (listof ast:msg-type?)]
    [enum-types       (listof ast:enum-type?)]
    [options          ast:options?]))
+
+(define-ast-struct ast:package
+  ([name             string?]))
+
+(define-ast-struct ast:import
+  ([path             string?]
+   [public?          boolean?]))
 
 (define-ast-struct ast:msg-type
   ([name             string?]
