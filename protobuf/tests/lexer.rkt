@@ -14,7 +14,7 @@
           seq-options ...)
        #'(check-not-exn
           (λ ()
-            (test (for/list ([p (in-tokens
+            (test (for/list ([p (in-protobuf-tokens
                                  (open-input-string
                                   (string-join '(in-str-lines ...) "\n"))
                                  seq-options ...)])

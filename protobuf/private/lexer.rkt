@@ -8,12 +8,13 @@
          (prefix-in : parser-tools/lex-sre))
 
 (provide tokenize ; (port -> position-token)
-         in-tokens
+         in-protobuf-tokens
          protobuf-tokens
          protobuf-empty-tokens
          token-IDENT
          token-INTLIT
-         token-FLOATLIT)
+         token-FLOATLIT
+         protobuf-token->string)
 
 ;; using as reference:
 ;;   https://developers.google.com/protocol-buffers/docs/reference/proto3-spec
@@ -112,6 +113,7 @@
   #:other (EOF))
 
 
+
 ;;    actual lexer here
 (define tokenize
   (lexer-src-pos
@@ -137,11 +139,14 @@
 
    [(eof) (token-EOF)]))
 
+
+;; tokens as a sequence
+
 (define (EOF? x)
   (equal? (position-token-token x) 'EOF))
 
-(define (in-tokens [port (current-input-port)]
-                   #:include-eof? [inc-eof? #f])
+(define (in-protobuf-tokens [port (current-input-port)]
+                            #:include-eof? [inc-eof? #f])
   (make-do-sequence
    (λ ()
      (values tokenize
@@ -150,3 +155,14 @@
              #f
              (λ (t) (if (EOF? t) inc-eof? #t))
              (λ (p t) (not (EOF? t)))))))
+
+
+
+;; pretty printing
+(define (protobuf-token->string sym)
+  (case sym
+    [(IDENT) "<identifier>"]
+    [(INTLIT) "<integer>"]
+    [(FLOATLIT) "<float>"]
+    [else
+     "<other (TODO)>"]))
