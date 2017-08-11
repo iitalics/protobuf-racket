@@ -233,13 +233,32 @@
                     fields
                     messages
                     enums
-                    other
+                    (foldr append '() other)
                     options)])])
 
   (<msg-elems>
    [(<msg-elems> <option>) (cons $2 $1)]
    [(<msg-elems> <field>) (cons $2 $1)]
+   [(<msg-elems> <reserved>) (cons $2 $1)]
    [() '()])
 
+  (<reserved>
+   [(KW-reserved <names> SEMI) $2]
+   [(KW-reserved <ranges> SEMI) $2])
+
+  (<names>
+   ; google's BNF is wrong here, but according to the parser and code
+   ; examples, you should describe field names using string literals
+   [(STRINGLIT) (list $1)]
+   [(STRINGLIT COMMA <names>) (cons $1 $3)])
+
+  (<ranges>
+   [(<range>) (list $1)]
+   [(<range> COMMA <ranges>) (cons $1 $3)])
+
+  [<range>
+   [(INTLIT KW-to INTLIT) (ast:range ($1-src) $1 $3)]
+   [(INTLIT KW-to KW-max) (ast:range ($1-src) $1 'max)]
+   [(INTLIT) $1]]
 
   )
