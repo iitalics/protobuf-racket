@@ -220,7 +220,7 @@
     [else
      (or (for/first ([(k v) (in-hash protobuf-keywords)]
                      #:when (eq? v sym))
-           k)
+           (format "keyword '~a'" k))
          (for/first ([(k v) (in-hash protobuf-delims)]
                      #:when (eq? v sym))
            (string k))
