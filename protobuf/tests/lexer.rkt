@@ -63,14 +63,14 @@
              ])
 
   ;; test delimeters
-  (lex-test "(){}[] ( ) (hi) (0.0,) =([;4}])"
+  (lex-test "(){}[] ( ) (hi.world) (0.0,) =([;4}])"
             check-equal?
             [
              'LP 'RP
              'LC 'RC
              'LB 'RB
              'LP 'RP
-             'LP (token-IDENT "hi") 'RP
+             'LP (token-IDENT "hi") 'DOT (token-IDENT "world") 'RP
              'LP (token-FLOATLIT 0.0) 'COMMA 'RP
              'EQ 'LP 'LB 'SEMI (token-INTLIT 4) 'RC 'RB 'RP
              ])

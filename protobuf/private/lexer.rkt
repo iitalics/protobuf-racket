@@ -94,7 +94,8 @@
    [#\< LT] [#\> GT]
    [#\+ PLUS]
    [#\- MINUS]
-   [#\= EQ])
+   [#\= EQ]
+   [#\. DOT])
 
   #:keywords protobuf-keywords
   (syntax
