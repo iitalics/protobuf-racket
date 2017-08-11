@@ -4,7 +4,8 @@
                      racket/syntax)
          "lexer.rkt" "ast.rkt"
          parser-tools/lex
-         parser-tools/yacc)
+         parser-tools/yacc
+         racket/match)
 
 
 (define current-parse-source-path
@@ -77,6 +78,30 @@
      #:with $1-start-pos (datum->syntax this-syntax '$1-start-pos)
      #'(position->srcloc $1-start-pos)]))
 
+;; generalized partition on many predicates
+;;   e.g.
+;;     (distinguish '(-3 -2 -1 0 1 2 3)
+;;                   (λ (x) (> x 0))
+;;                   (λ (x) (< x 0)))
+;;     ->
+;;    '((1 2 3) (-3 -2 -1) (0))
+;;   the first list returned obeys the first predicate
+;;   the second list returned obeys the second predicate
+;;   etc.
+;;   the last list returned fails all of the predicates
+(define (distinguish lst #:reverse? [rev? #f]  . preds)
+  (let ([out (make-vector (add1 (length preds)) '())])
+    (for ([x (in-list (if rev? lst (reverse lst)))])
+      (let ([idx (or (for/first ([p (in-list preds)]
+                                 [i (in-naturals)]
+                                 #:when (p x))
+                       i)
+                     (length preds))])
+        (vector-set! out idx
+                     (cons x (vector-ref out idx)))))
+    (vector->list out)))
+
+
 
 ;; using as reference:
 ;;   https://developers.google.com/protocol-buffers/docs/reference/proto3-spec
@@ -88,6 +113,7 @@
 (define-parser parse-ast
   #:start <file>
   #:end EOF
+  ;;   file
   (<file>
    [(<syntax> <toplevels>)
     (begin (printf "the protocol version is: ~a\n" $1)
@@ -96,8 +122,34 @@
   (<syntax>
    [(KW-syntax EQ STRINGLIT SEMI) $3])
 
+
+  ;; common
+  (<full-ident>
+   [(<full-ident> DOT IDENT) (string-append $1 "." $3)]
+   [(IDENT) $1])
+
+  (<type-ident>
+   [(DOT <full-ident>) (string-append "." $2)]
+   [(<full-ident>) $1])
+
+  (<constant>
+   [(INTLIT) $1]
+   [(FLOATLIT) $1]
+   [(PLUS INTLIT) $2]
+   [(PLUS FLOATLIT) $2]
+   [(MINUS INTLIT) (- $2)]
+   [(MINUS FLOATLIT) (- $2)]
+   [(STRINGLIT) $1]
+   [(KW-true) #t]
+   [(KW-false) #f])
+
+
+  ;;   toplevels
   (<toplevels>
    [(<toplevels> <import>) (cons $2 $1)]
+   [(<toplevels> <package>) (cons $2 $1)]
+   [(<toplevels> <option>) (cons $2 $1)]
+   [(<toplevels> <message>) (cons $2 $1)]
    [(<toplevels> <empty>) $1]
    [() '()])
 
@@ -105,7 +157,89 @@
    [(KW-import STRINGLIT SEMI) (ast:import ($1-src) $2 #f)]
    [(KW-import KW-public STRINGLIT SEMI) (ast:import ($1-src) $3 #t)])
 
+  (<package>
+   [(KW-package <full-ident> SEMI) (ast:package ($1-src) $2)])
+
   (<empty>
    [(SEMI) (void)])
+
+
+  ;;   types
+  (<key-type>
+   [(KW-int32) 'int32]
+   [(KW-int64) 'int64]
+   [(KW-uint32) 'uint32]
+   [(KW-uint64) 'uint64]
+   [(KW-sint32) 'sint32]
+   [(KW-sint64) 'sint64]
+   [(KW-fixed32) 'fixed32]
+   [(KW-fixed64) 'fixed64]
+   [(KW-sfixed32) 'sfixed32]
+   [(KW-sfixed64) 'sfixed64]
+   [(KW-bool) 'bool]
+   [(KW-string) 'string])
+
+  (<type>
+   [(<key-type>) $1]
+   [(KW-float) 'float]
+   [(KW-double) 'double]
+   [(KW-bytes) 'bytes]
+   [(<type-ident>) $1])
+
+
+  ;;   fields & options
+  (<field>
+   [(<field-label> <type> IDENT EQ INTLIT SEMI) ; TODO: field options
+    (ast:field ($1-src) $3 $5 $1 $2
+               empty-options)])
+
+  (<field-label>
+   [(KW-repeated) 'repeated]
+   [() 'optional])
+
+  (<option-name>
+   [(LP <full-ident> RP) (list $2)]
+   [(IDENT) (list $1 #f)]
+   [(<option-name> DOT IDENT) (cons $3 $1)])
+
+  (<option>
+   [(KW-option <option-name> EQ <constant> SEMI)
+    (let* ([parts (reverse $2)])
+      (ast:option ($1-src)
+                  (car parts)
+                  (cdr parts)
+                  $4))])
+
+  (<inline-option>
+   [(<option-name> EQ <constant>)
+    (let* ([parts (reverse $1)])
+      (ast:option ($1-src)
+                  (car parts)
+                  (cdr parts)
+                  $3))])
+
+
+  ;;   message
+  (<message>
+   [(KW-message IDENT LC <msg-elems> RC)
+    (match (distinguish #:reverse? #t $4
+                        ast:field?
+                        ast:message?
+                        ast:enum?
+                        ast:option?)
+      [(list fields messages enums options other)
+       (ast:message ($1-src)
+                    $2
+                    fields
+                    messages
+                    enums
+                    other
+                    options)])])
+
+  (<msg-elems>
+   [(<msg-elems> <option>) (cons $2 $1)]
+   [(<msg-elems> <field>) (cons $2 $1)]
+   [() '()])
+
 
   )

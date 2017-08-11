@@ -1,3 +1,8 @@
 syntax = "proto3";
-import "google/protobuf/any.proto";
-import public "google/protobuf/foo.proto";
+option (my.extension).java_package = -5;
+
+message Test {
+  option thingy = true;
+  int32 x = 1;
+  Test y = 2;
+}
