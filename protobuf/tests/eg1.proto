@@ -1,15 +1,16 @@
 syntax = "proto3";
 package racket.protobuf;
 
-enum Color {
-  option allow_alias = true;
-  Red = 0;
-  Green = 1;
-  Lime = 1;
-  Blue = 3;
-}
-
 message RGB {
+
+  enum Color {
+    option allow_alias = true;
+    Red = 0;
+    Green = 1;
+    Lime = 1;
+    Blue = 3;
+  }
+
   Color red = 0;
   Color green = 1;
   Color blue = 2;

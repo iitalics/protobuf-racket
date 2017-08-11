@@ -239,8 +239,8 @@
 
   (<msg-elems>
    [(<msg-elems> <field>) (cons $2 $1)]
-   ; TODO: enum
-   ; TODO: message
+   [(<msg-elems> <enum>) (cons $2 $1)]
+   [(<msg-elems> <message>) (cons $2 $1)]
    [(<msg-elems> <option>) (cons $2 $1)]
    ; TODO: oneof
    ; TODO: map-field
