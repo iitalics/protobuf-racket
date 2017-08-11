@@ -25,19 +25,20 @@
 
 (define-ast-struct ast:option
   ([extension     (or/c #f string?)]
-   [names         (listof string?)]))
+   [names         (listof string?)]
+   [value         any/c]))
 
-(define empty-options (hash))
+(define empty-options '())
 
 (define ast:options?
-  (hash/c ast:option? any/c))
+  (listof ast:option?))
 
 (define-ast-struct ast:file
   ([path             path?]
    [package          ast:package?]
    [imports          (listof ast:import?)]
-   [message-types    (listof ast:msg-type?)]
-   [enum-types       (listof ast:enum-type?)]
+   [messages         (listof ast:message?)]
+   [enums            (listof ast:enum?)]
    [options          ast:options?]))
 
 (define-ast-struct ast:package
@@ -47,12 +48,14 @@
   ([path             string?]
    [public?          boolean?]))
 
-(define-ast-struct ast:msg-type
+(define-ast-struct ast:message
   ([name             string?]
    [fields           (listof ast:field?)]
-   [nested-msgs      (listof ast:msg-type?)]
-   [nested-enums     (listof ast:enum-type?)]
-   [reserved         (listof (or/c exact-integer? string?))]
+   [nested-msgs      (listof ast:message?)]
+   [nested-enums     (listof ast:enum?)]
+   [reserved         (listof (or/c exact-integer?
+                                   string?
+                                   ast:range?))]
    [options          ast:options?]))
 
 (define-ast-struct ast:field
@@ -62,7 +65,7 @@
    [type             ast:type?]
    [options          ast:options?]))
 
-(define-ast-struct ast:enum-type
+(define-ast-struct ast:enum
   ([name             string?]
    [values           (listof ast:enum-val?)]
    [options          ast:options?]))
@@ -72,9 +75,17 @@
    [number           exact-integer?]
    [options          ast:options?]))
 
+(define-ast-struct ast:range
+  ([min              exact-integer?]
+   [max              (or/c exact-integer? 'max)]))
+
+(define-ast-struct ast:map-type
+  ([key-type         ast:type?]
+   [val-type         ast:type?]))
+
 (define ast:type?
-  (or/c ast:msg-type?
-        ast:enum-type?
-        'int32 'uint32 'sint32 'fixed32 'sfixed32 'float
+  (or/c 'int32 'uint32 'sint32 'fixed32 'sfixed32 'float
         'int64 'uint64 'sint64 'fixed64 'sfixed64 'double
-        'bool 'string 'bytes))
+        'bool 'string 'bytes
+        string?             ; unresolved type name
+        ast:map-type?))
