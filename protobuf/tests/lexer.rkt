@@ -95,4 +95,31 @@
             [ 'EOF ]
             #:include-eof? #t)
 
+  ;; test string literals
+  (lex-test "\"hello\"  \"\\a\\b\\f\\n\\r\\t\\v\\\\\""
+            "'single is ok too'"
+            "'single is \\\"ok\\\" too'"
+            "'single is \\'ok\\' too'"
+            "\"double is \\\"ok\\\" too\""
+            "\"'\""
+            "'\"'"
+            "'\\x41 \\102 \\x63 \\144'"
+            check-equal?
+            [
+             (token-STRINGLIT "hello")
+             (token-STRINGLIT "\a\b\f\n\r\t\v\\")
+             (token-STRINGLIT "single is ok too")
+             (token-STRINGLIT "single is \"ok\" too")
+             (token-STRINGLIT "single is 'ok' too")
+             (token-STRINGLIT "double is \"ok\" too")
+             (token-STRINGLIT "'")
+             (token-STRINGLIT "\"")
+             (token-STRINGLIT "A B c d")
+             ])
+
+  (for ([s (list "'eof here =>"
+                 "'null: \0'"
+                 "'newline: \n'")])
+    (check-exn any/c (λ () (tokenize s))))
+
   )
