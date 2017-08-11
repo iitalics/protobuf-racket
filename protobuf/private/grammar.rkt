@@ -150,6 +150,7 @@
    [(<toplevels> <package>) (cons $2 $1)]
    [(<toplevels> <option>) (cons $2 $1)]
    [(<toplevels> <message>) (cons $2 $1)]
+   [(<toplevels> <enum>) (cons $2 $1)]
    [(<toplevels> <empty>) $1]
    [() '()])
 
@@ -190,8 +191,8 @@
   ;;   fields & options
   (<field>
    [(<field-label> <type> IDENT EQ INTLIT SEMI) ; TODO: field options
-    (ast:field ($1-src) $3 $5 $1 $2
-               empty-options)])
+    ; TODO: options
+    (ast:field ($1-src) $3 $5 $1 $2 empty-options)])
 
   (<field-label>
    [(KW-repeated) 'repeated]
@@ -222,7 +223,7 @@
   ;;   message
   (<message>
    [(KW-message IDENT LC <msg-elems> RC)
-    (match (distinguish #:reverse? #t $4
+    (match (distinguish $4 #:reverse? #t
                         ast:field?
                         ast:message?
                         ast:enum?
@@ -237,9 +238,14 @@
                     options)])])
 
   (<msg-elems>
-   [(<msg-elems> <option>) (cons $2 $1)]
    [(<msg-elems> <field>) (cons $2 $1)]
+   ; TODO: enum
+   ; TODO: message
+   [(<msg-elems> <option>) (cons $2 $1)]
+   ; TODO: oneof
+   ; TODO: map-field
    [(<msg-elems> <reserved>) (cons $2 $1)]
+   [(<msg-elems> <empty>) $1]
    [() '()])
 
   (<reserved>
@@ -260,5 +266,28 @@
    [(INTLIT KW-to INTLIT) (ast:range ($1-src) $1 $3)]
    [(INTLIT KW-to KW-max) (ast:range ($1-src) $1 'max)]
    [(INTLIT) $1]]
+
+
+  ;;    enum
+  (<enum>
+   [(KW-enum IDENT LC <enum-elems> RC)
+    (match (distinguish $4 #:reverse? #t
+                        ast:enum-val?)
+      [(list values options)
+       (ast:enum ($1-src)
+                 $2
+                 values
+                 options)])])
+
+  (<enum-elems>
+   [(<enum-elems> <option>) (cons $2 $1)]
+   [(<enum-elems> <enum-val>) (cons $2 $1)]
+   [(<enum-elems> <empty>) $1]
+   [() '()])
+
+  (<enum-val>
+   [(IDENT EQ INTLIT SEMI)
+    ; TODO: options
+    (ast:enum-val ($1-src) $1 $3 empty-options)])
 
   )
