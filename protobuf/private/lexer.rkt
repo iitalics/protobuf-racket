@@ -95,12 +95,11 @@
    [#\= EQ])
   #:keywords protobuf-keywords
   (syntax
-   proto2 proto3
    true false
    import weak public
    package option
    message enum oneof map
-   reserved optional repeated
+   reserved required optional repeated
    double float int32 int64 uint32 uint64 sint32 sint64
    fixed32 fixed64 sfixed32 sfixed64
    bool string bytes

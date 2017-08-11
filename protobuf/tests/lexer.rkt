@@ -23,14 +23,14 @@
   ;; test keywords
   (lex-test "message option package import public"
             "true false"
-            "syntax proto3"
+            "syntax"
             "int32 uint32 sint32 int64 uint64 sint64"
             "fixed32 sfixed32 fixed64 sfixed64 bool string bytes"
             check-equal?
             [
              'KW-message 'KW-option 'KW-package 'KW-import 'KW-public
              'KW-true 'KW-false
-             'KW-syntax 'KW-proto3
+             'KW-syntax
              'KW-int32 'KW-uint32 'KW-sint32 'KW-int64 'KW-uint64 'KW-sint64
              'KW-fixed32 'KW-sfixed32 'KW-fixed64 'KW-sfixed64 'KW-bool 'KW-string 'KW-bytes
              ])
