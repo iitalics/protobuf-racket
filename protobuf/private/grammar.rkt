@@ -34,7 +34,7 @@
                       (protobuf-token->string tok-name))])
     (raise (exn:fail:read msg
                           (current-continuation-marks)
-                          (list src)))))
+                          (list src src)))))
 
 
 (define-syntax define-parser
