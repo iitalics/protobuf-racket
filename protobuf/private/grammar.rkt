@@ -188,16 +188,7 @@
    [(<type-ident>) $1])
 
 
-  ;;   fields & options
-  (<field>
-   [(<field-label> <type> IDENT EQ INTLIT SEMI) ; TODO: field options
-    ; TODO: options
-    (ast:field ($1-src) $3 $5 $1 $2 empty-options)])
-
-  (<field-label>
-   [(KW-repeated) 'repeated]
-   [() 'optional])
-
+  ;;   options
   (<option-name>
    [(LP <full-ident> RP) (list $2)]
    [(IDENT) (list $1 #f)]
@@ -218,6 +209,14 @@
                   (car parts)
                   (cdr parts)
                   $3))])
+
+  (<inline-options>
+   [(<inline-option>) (list $1)]
+   [(<inline-option> COMMA <inline-options>) (cons $1 $3)])
+
+  (<field-options>
+   [(LB <inline-options> RB) $2]
+   [() '()])
 
 
   ;;   message
@@ -247,6 +246,14 @@
    [(<msg-elems> <reserved>) (cons $2 $1)]
    [(<msg-elems> <empty>) $1]
    [() '()])
+
+  (<field>
+   [(<field-label> <type> IDENT EQ INTLIT <field-options> SEMI)
+    (ast:field ($1-src) $3 $5 $1 $2 $6)])
+
+  (<field-label>
+   [(KW-repeated) 'repeated]
+   [() 'optional])
 
   (<reserved>
    [(KW-reserved <names> SEMI) $2]
@@ -286,8 +293,7 @@
    [() '()])
 
   (<enum-val>
-   [(IDENT EQ INTLIT SEMI)
-    ; TODO: options
-    (ast:enum-val ($1-src) $1 $3 empty-options)])
+   [(IDENT EQ INTLIT <field-options> SEMI)
+    (ast:enum-val ($1-src) $1 $3 $4)])
 
   )

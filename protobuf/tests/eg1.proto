@@ -7,7 +7,7 @@ message RGB {
     option allow_alias = true;
     Red = 0;
     Green = 1;
-    Lime = 1;
+    Lime = 1 [(special) = true];
     Blue = 3;
   }
 
@@ -18,5 +18,8 @@ message RGB {
 }
 
 message Pixels {
-  repeated RGB colors = 0;
+  uint32 width = 0;
+  uint32 height = 1;
+  bool has_alpha = 2 [default = true];
+  repeated RGB colors = 3;
 }
