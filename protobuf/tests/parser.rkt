@@ -20,9 +20,10 @@
        #:with [token+eof ...] #'[token ... EOF]
        #:with [token-expr ...]
        (stx-map (syntax-parser
-                  [TOK:id #''TOK]            ; TOK      =>  'TOK
-                  [x:str #'(token-IDENT 'x)] ; "ID"     =>  (token-IDENT "ID")
-                  [(TOK:id val)              ; (TOK x)  =>  (token-TOK x)
+                  [TOK:id #''TOK]             ; TOK      =>  'TOK
+                  [x:str #'(token-IDENT 'x)]  ; "ID"     =>  (token-IDENT "ID")
+                  [n:nat #'(token-INTLIT 'n)] ; n        =>  (token-INTLIT n)
+                  [(TOK:id val)               ; (TOK x)  =>  (token-TOK x)
                    #:with token-TOK (format-id #'TOK "token-~a" #'TOK)
                    #'(token-TOK val)])
                 #'[token+eof ...])
@@ -70,7 +71,7 @@
   (parse-test [
                KW-syntax EQ (STRINGLIT "proto3") SEMI
                KW-option "option1" DOT "x" EQ KW-true SEMI
-               KW-option LP "option2" DOT "y" RP DOT "z" EQ MINUS (INTLIT 3) SEMI
+               KW-option LP "option2" DOT "y" RP DOT "z" EQ MINUS 3 SEMI
                ]
               (ast:option $5-src #f '("option1" "x") #t)
               (ast:option $12-src "option2.y" '("z") -3))
@@ -78,11 +79,11 @@
   (parse-test [
                KW-syntax EQ (STRINGLIT "proto3") SEMI
                KW-message "Msg1" LC
-               KW-repeated KW-int32 "x" EQ (INTLIT 3) SEMI
-               DOT "test" DOT "Msg2" "y" EQ (INTLIT 4) SEMI
-               KW-reserved (INTLIT 3)
-               COMMA (INTLIT 4) KW-to (INTLIT 6)
-               COMMA (INTLIT 10) KW-to KW-max SEMI
+               KW-repeated KW-int32 "x" EQ 3 SEMI
+               DOT "test" DOT "Msg2" "y" EQ 4 SEMI
+               KW-reserved 3
+               COMMA 4 KW-to 6
+               COMMA 10 KW-to KW-max SEMI
                KW-reserved (STRINGLIT "z") COMMA (STRINGLIT "w") SEMI
                RC
                ]
@@ -101,8 +102,8 @@
   (parse-test [
                KW-syntax EQ (STRINGLIT "proto3") SEMI
                KW-enum "Enum1" LC
-               "A" EQ (INTLIT 0) SEMI
-               "B" EQ (INTLIT 6) SEMI
+               "A" EQ 0 SEMI
+               "B" EQ 6 SEMI
                RC
                ]
               (ast:enum $5-src
@@ -118,9 +119,9 @@
                KW-message "C" LC
                RC
                RC
-               KW-reserved (INTLIT 2) SEMI
+               KW-reserved 2 SEMI
                KW-enum "D" LC
-               "o" EQ (INTLIT 0) SEMI
+               "o" EQ 0 SEMI
                RC
                RC
                ]
@@ -146,12 +147,12 @@
                KW-syntax EQ (STRINGLIT "proto3") SEMI
                KW-message "A" LC
                KW-option "opt" EQ (FLOATLIT 3.0) SEMI
-               KW-int32 "x" EQ (INTLIT 0)
+               KW-int32 "x" EQ 0
                LB "iopt1" EQ KW-true
                COMMA "iopt2" EQ (STRINGLIT "yes") RB SEMI
                RC
                KW-enum "B" LC
-               "o" EQ (INTLIT 0) LB LP "iopt3" RP EQ (INTLIT 7) RB SEMI
+               "o" EQ 0 LB LP "iopt3" RP EQ 7 RB SEMI
                KW-option "opt" EQ KW-false SEMI
                RC
                ]
@@ -177,10 +178,10 @@
   (parse-test [
                KW-syntax EQ (STRINGLIT "proto3") SEMI
                KW-message "A" LC
-               KW-map LT KW-fixed32 COMMA KW-string GT "tbl" EQ (INTLIT 0) SEMI
+               KW-map LT KW-fixed32 COMMA KW-string GT "tbl" EQ 0 SEMI
                KW-oneof "one" LC
-               KW-uint32 "i" EQ (INTLIT 1) SEMI
-               KW-double "d" EQ (INTLIT 2) SEMI
+               KW-uint32 "i" EQ 1 SEMI
+               KW-double "d" EQ 2 SEMI
                RC
                RC
                ]
