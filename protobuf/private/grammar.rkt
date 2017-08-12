@@ -231,6 +231,8 @@
        (ast:message ($1-src)
                     $2
                     fields
+                    '()
+                    '()
                     messages
                     enums
                     (foldr append '() other)

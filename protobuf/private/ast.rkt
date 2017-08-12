@@ -51,6 +51,8 @@
 (define-ast-struct ast:message
   ([name             string?]
    [fields           (listof ast:field?)]
+   [oneofs           (listof ast:oneof?)]
+   [map-fields       (listof ast:map-field?)]
    [nested-msgs      (listof ast:message?)]
    [nested-enums     (listof ast:enum?)]
    [reserved         (listof (or/c exact-integer?
@@ -63,6 +65,16 @@
    [number           exact-integer?]
    [label            (or/c 'unknown 'optional 'required 'repeated)]
    [type             ast:type?]
+   [options          ast:options?]))
+
+(define-ast-struct ast:oneof
+  ([name             string?]
+   [fields           (listof ast:field?)]))
+
+(define-ast-struct ast:map-field
+  ([name             string?]
+   [number           exact-integer?]
+   [type             ast:map-type?]
    [options          ast:options?]))
 
 (define-ast-struct ast:enum
@@ -87,5 +99,4 @@
   (or/c 'int32 'uint32 'sint32 'fixed32 'sfixed32 'float
         'int64 'uint64 'sint64 'fixed64 'sfixed64 'double
         'bool 'string 'bytes
-        string?             ; unresolved type name
-        ast:map-type?))
+        string?))             ; unresolved type name
