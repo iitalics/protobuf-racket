@@ -31,20 +31,20 @@
        ; generate random source locations for each token
        #:with [($k-src ln col) ...] (for/list ([x (in-syntax #'[token+eof ...])]
                                                [k (in-naturals 1)])
-                                      (list
-                                       (format-id this-syntax "$~a-src" k)
-                                       k
-                                       (random 2 100)))
+                                      (list (format-id this-syntax "$~a-src" k)
+                                            (datum->syntax this-syntax k)
+                                            (datum->syntax this-syntax (random 2 100))))
        #:with [k-pos ...] (generate-temporaries #'[$k-src ...])
 
        ; fake name for source file
        #:with test-name (begin (set! test-id (add1 test-id))
-                               (format "parse-test-#~a.proto" test-id))
+                               (datum->syntax this-syntax
+                                              (format "parse-test-#~a.proto" test-id)))
 
-       #'(let ([$k-src (make-srcloc 'test-name 'ln 'col 1 #f)] ...)
+       #'(let ([$k-src (make-srcloc test-name ln col 1 #f)] ...)
            (let ([parsed-asts
-                  (let ([k-pos (make-position 1 'ln 'col)] ...)
-                    (parameterize ([current-parse-source-path 'test-name])
+                  (let ([k-pos (make-position 1 ln col)] ...)
+                    (parameterize ([current-parse-source-path test-name])
                       (parse-ast/sequence
                        (list (position-token token-expr k-pos k-pos) ...))))])
              (for ([expected (in-list (list ast ...))]
