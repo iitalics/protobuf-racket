@@ -34,14 +34,13 @@
   (listof ast:option?))
 
 (define-ast-struct ast:file
-  ([path             path?]
-   [package          ast:package?]
+  ([package          string?]
    [imports          (listof ast:import?)]
    [messages         (listof ast:message?)]
    [enums            (listof ast:enum?)]
    [options          ast:options?]))
 
-(define-ast-struct ast:package
+(define-ast-struct ast:package-decl
   ([name             string?]))
 
 (define-ast-struct ast:import

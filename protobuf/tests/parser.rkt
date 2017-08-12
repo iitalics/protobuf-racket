@@ -15,7 +15,14 @@
   (define-for-syntax test-id 0)
   (define-syntax parse-test
     (syntax-parser
-      [(_ (token ...) ast ...)
+      [(_ (token ...)
+          (~optional (~seq #:package exp-pkg-name:str)
+                     #:defaults ([exp-pkg-name #'""]))
+          (~optional (~seq #:imports exp-imports:expr ...) #:defaults ([(exp-imports 1) '()]))
+          (~optional (~seq #:messages exp-msgs:expr ...) #:defaults ([(exp-msgs 1) '()]))
+          (~optional (~seq #:enums exp-enums:expr ...) #:defaults ([(exp-enums 1) '()]))
+          (~optional (~seq #:options exp-opts:expr ...) #:defaults ([(exp-opts 1) '()])))
+
        ; generate real expressions for tokens, which includes implicit EOF
        #:with [token+eof ...] #'[token ... EOF]
        #:with [token-expr ...]
@@ -41,15 +48,24 @@
                                (datum->syntax this-syntax
                                               (format "parse-test-#~a.proto" test-id)))
 
+       ; things to check
+       #:with ([accessor expecteds ...] ...)
+       #'( [ast:file-imports    exp-imports ...]
+           [ast:file-messages   exp-msgs ...]
+           [ast:file-enums      exp-enums ...]
+           [ast:file-options    exp-opts ...] )
+
        #'(let ([$k-src (make-srcloc test-name ln col 1 #f)] ...)
-           (let ([parsed-asts
+           ; parse it
+           (let ([ast
                   (let ([k-pos (make-position 1 ln col)] ...)
-                    (parameterize ([current-parse-source-path test-name])
+                    (parameterize ([current-parse-source test-name])
                       (parse-ast/sequence
                        (list (position-token token-expr k-pos k-pos) ...))))])
-             (for ([expected (in-list (list ast ...))]
-                   [parsed (in-list parsed-asts)])
-               (check-equal? parsed expected))))]))
+             (check-equal? (ast:file-package ast) exp-pkg-name)
+             (for ([x (in-list (accessor ast))]
+                   [y (list expecteds ...)])
+               (check-equal? x y)) ...))]))
 
 
 
@@ -58,13 +74,14 @@
                KW-syntax EQ (STRINGLIT "proto3") SEMI
                KW-package "foo" DOT "bar" SEMI
                ]
-              (ast:package $5-src "foo.bar"))
+              #:package "foo.bar")
 
   (parse-test [
                KW-syntax EQ (STRINGLIT "proto3") SEMI
                KW-import (STRINGLIT "foo/bar") SEMI
                KW-import KW-public (STRINGLIT "foo/baz") SEMI
                ]
+              #:imports
               (ast:import $5-src "foo/bar" #f)
               (ast:import $8-src "foo/baz" #t))
 
@@ -73,8 +90,9 @@
                KW-option "option1" DOT "x" EQ KW-true SEMI
                KW-option LP "option2" DOT "y" RP DOT "z" EQ MINUS 3 SEMI
                ]
+              #:options
               (ast:option $5-src #f '("option1" "x") #t)
-              (ast:option $12-src "option2.y" '("z") -3))
+              (ast:option $12-src "option2.y" '("z") -3)0)
 
   (parse-test [
                KW-syntax EQ (STRINGLIT "proto3") SEMI
@@ -87,6 +105,7 @@
                KW-reserved (STRINGLIT "z") COMMA (STRINGLIT "w") SEMI
                RC
                ]
+              #:messages
               (ast:message $5-src
                            "Msg1"
                            (list (ast:field $8-src "x" 3 'repeated 'int32 '())
@@ -106,6 +125,7 @@
                "B" EQ 6 SEMI
                RC
                ]
+              #:enums
               (ast:enum $5-src
                         "Enum1"
                         (list (ast:enum-val $8-src "A" 0 '())
@@ -125,6 +145,7 @@
                RC
                RC
                ]
+              #:messages
               (ast:message $5-src
                            "A"
                            '() '() '()
@@ -156,6 +177,7 @@
                KW-option "opt" EQ KW-false SEMI
                RC
                ]
+              #:messages
               (ast:message $5-src
                            "A"
                            (list (ast:field $13-src
@@ -185,6 +207,7 @@
                RC
                RC
                ]
+              #:messages
               (ast:message $5-src
                            "A"
                            '()

@@ -7,7 +7,7 @@
          parser-tools/yacc
          racket/match)
 
-(provide current-parse-source-path
+(provide current-parse-source ; name of source of parsed input, e.g. file path
          raise-parse-error
          parse-ast/generator ; takes a generator
          parse-ast/sequence ; takes a token sequence
@@ -16,12 +16,12 @@
          )
 
 
-(define current-parse-source-path
+(define current-parse-source
   (make-parameter #f))
 
 
 (define (position->srcloc pos)
-  (make-srcloc (current-parse-source-path)
+  (make-srcloc (current-parse-source)
                (position-line pos)
                (position-col pos)
                (position-offset pos)
@@ -29,9 +29,9 @@
 
 (define-struct (exn:fail:read:parse exn:fail:read) ())
 
-(define (raise-parse-error src msg)
+(define (raise-parse-error src msg . fmt-args)
   (raise (make-exn:fail:read:parse
-          msg
+          (apply format (cons msg fmt-args))
           (current-continuation-marks)
           (list src src))))
 
@@ -54,11 +54,11 @@
                              [off2 (position-offset end-pos)]
                              [line (position-line start-pos)]
                              [col (position-col start-pos)]
-                             [src (make-srcloc (current-parse-source-path)
-                                               line col off1 (- off2 off1))]
-                             [msg (format "invalid token: ~a"
-                                          (protobuf-token->string tok-name))])
-                        (raise-parse-error src msg))))
+                             [src (make-srcloc (current-parse-source)
+                                               line col off1 (- off2 off1))])
+                        (raise-parse-error src
+                                           "invalid token: ~a"
+                                           (protobuf-token->string tok-name)))))
                    (grammar rule ...)))
 
          (define (parse/seq seq)
@@ -72,7 +72,7 @@
          (define (parse x)
            (cond
              [(or (path? x) (string? x))
-              (parameterize ([current-parse-source-path x])
+              (parameterize ([current-parse-source x])
                 (with-input-from-file x
                   (λ () (parse/port (current-input-port)))))]
 
@@ -124,11 +124,31 @@
   ;;   file
   (<file>
    [(<syntax> <toplevels>)
-    (if (equal? $1 "proto3")
-        (reverse $2)
+    (begin
+      (unless (equal? $1 "proto3")
         (raise-parse-error ($1-src)
                            (format "unsupported syntax ~v, expected ~v"
-                                   $1 "proto3")))])
+                                   $1 "proto3")))
+      (match (distinguish $2 #:reverse? #t
+                          ast:import?
+                          ast:option?
+                          ast:message?
+                          ast:enum?)
+        [(list imports options msgs enums pkg-decls)
+         (let ([pkg-name (match pkg-decls
+                           ['() ""]
+                           [(list (ast:package-decl _ x)) x]
+                           [(list* (ast:package-decl _ x)
+                                   (ast:package-decl 2nd-src _)
+                                   _)
+                            (raise-parse-error 2nd-src "package already declared as ~v" x)])])
+           (ast:file ($1-src)
+                     pkg-name
+                     imports
+                     msgs
+                     enums
+                     options))]))])
+
 
   (<syntax>
    [(KW-syntax EQ STRINGLIT SEMI) $3])
@@ -158,10 +178,10 @@
   ;;   toplevels
   (<toplevels>
    [(<toplevels> <import>) (cons $2 $1)]
-   [(<toplevels> <package>) (cons $2 $1)]
    [(<toplevels> <option>) (cons $2 $1)]
    [(<toplevels> <message>) (cons $2 $1)]
    [(<toplevels> <enum>) (cons $2 $1)]
+   [(<toplevels> <package>) (cons $2 $1)]
    [(<toplevels> <empty>) $1]
    [() '()])
 
@@ -170,7 +190,7 @@
    [(KW-import KW-public STRINGLIT SEMI) (ast:import ($1-src) $3 #t)])
 
   (<package>
-   [(KW-package <full-ident> SEMI) (ast:package ($1-src) $2)])
+   [(KW-package <full-ident> SEMI) (ast:package-decl ($1-src) $2)])
 
   (<empty>
    [(SEMI) (void)])
