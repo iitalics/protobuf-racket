@@ -19,23 +19,13 @@
                (position-offset pos)
                #f))
 
-(define (raise-parse-error tok-ok? tok-name tok-value
-                           start-pos end-pos)
-  (let* ([off1 (position-offset start-pos)]
-         [off2 (position-offset end-pos)]
-         [line (position-line start-pos)]
-         [col (position-col start-pos)]
-         [src (make-srcloc (current-parse-source-path)
-                           line
-                           col
-                           off1
-                           (- off2 off1))]
-         [msg (format "invalid token: ~a"
-                      (protobuf-token->string tok-name))])
-    (raise (exn:fail:read msg
-                          (current-continuation-marks)
-                          (list src src)))))
+(define-struct (exn:fail:read:parse exn:fail:read) ())
 
+(define (raise-parse-error src msg)
+  (raise (make-exn:fail:read:parse
+          msg
+          (current-continuation-marks)
+          (list src src))))
 
 (define-syntax define-parser
   (syntax-parser
@@ -50,7 +40,17 @@
                    (tokens protobuf-tokens protobuf-empty-tokens)
                    (start <start>)
                    (end END)
-                   (error raise-parse-error)
+                   (error
+                    (λ (tok-ok? tok-name tok-value start-pos end-pos)
+                      (let* ([off1 (position-offset start-pos)]
+                             [off2 (position-offset end-pos)]
+                             [line (position-line start-pos)]
+                             [col (position-col start-pos)]
+                             [src (make-srcloc (current-parse-source-path)
+                                               line col off1 (- off2 off1))]
+                             [msg (format "invalid token: ~a"
+                                          (protobuf-token->string tok-name))])
+                        (raise-parse-error src msg))))
                    (grammar rule ...)))
 
          (define (parse/seq seq)
@@ -116,8 +116,11 @@
   ;;   file
   (<file>
    [(<syntax> <toplevels>)
-    (begin (printf "the protocol version is: ~a\n" $1)
-           $2)])
+    (if (equal? $1 "proto3")
+        $2
+        (raise-parse-error ($1-src)
+                           (format "unsupported syntax ~v, expected ~v"
+                                   $1 "proto3")))])
 
   (<syntax>
    [(KW-syntax EQ STRINGLIT SEMI) $3])
