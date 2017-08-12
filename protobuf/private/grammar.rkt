@@ -228,15 +228,16 @@
     (match (distinguish $4 #:reverse? #t
                         ast:field?
                         ast:oneof?
+                        ast:map-field?
                         ast:message?
                         ast:enum?
                         ast:option?)
-      [(list fields oneofs messages enums options other)
+      [(list fields oneofs map-fields messages enums options other)
        (ast:message ($1-src)
                     $2
                     fields
                     oneofs
-                    '()
+                    map-fields
                     messages
                     enums
                     (foldr append '() other)
@@ -248,7 +249,7 @@
    [(<msg-elems> <message>) (cons $2 $1)]
    [(<msg-elems> <option>) (cons $2 $1)]
    [(<msg-elems> <oneof>) (cons $2 $1)]
-   ; TODO: map-field
+   [(<msg-elems> <map-field>) (cons $2 $1)]
    [(<msg-elems> <reserved>) (cons $2 $1)]
    [(<msg-elems> <empty>) $1]
    [() '()])
@@ -317,5 +318,10 @@
    [(<type> IDENT EQ INTLIT <field-options> SEMI)
     (ast:field ($1-src) $2 $4 'optional $1 $5)])
 
+
+  ;;   map field
+  (<map-field>
+   [(KW-map LT <key-type> COMMA <type> GT IDENT EQ INTLIT <field-options> SEMI)
+    (ast:map-field ($1-src) $7 $9 $3 $5 $10)])
 
   )

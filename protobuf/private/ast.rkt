@@ -74,7 +74,8 @@
 (define-ast-struct ast:map-field
   ([name             string?]
    [number           exact-integer?]
-   [type             ast:map-type?]
+   [key-type         ast:type?]
+   [val-type         ast:type?]
    [options          ast:options?]))
 
 (define-ast-struct ast:enum
@@ -90,10 +91,6 @@
 (define-ast-struct ast:range
   ([min              exact-integer?]
    [max              (or/c exact-integer? 'max)]))
-
-(define-ast-struct ast:map-type
-  ([key-type         ast:type?]
-   [val-type         ast:type?]))
 
 (define ast:type?
   (or/c 'int32 'uint32 'sint32 'fixed32 'sfixed32 'float
