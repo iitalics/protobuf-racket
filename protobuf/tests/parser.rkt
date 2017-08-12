@@ -111,4 +111,67 @@
                               (ast:enum-val $12-src "B" 6 '()))
                         '()))
 
+  (parse-test [
+               KW-syntax EQ (STRINGLIT "proto3") SEMI
+               KW-message "A" LC
+               KW-message "B" LC
+               KW-message "C" LC
+               RC
+               RC
+               KW-reserved (INTLIT 2) SEMI
+               KW-enum "D" LC
+               "o" EQ (INTLIT 0) SEMI
+               RC
+               RC
+               ]
+              (ast:message $5-src
+                           "A"
+                           '() '() '()
+                           (list (ast:message $8-src
+                                              "B"
+                                              '() '() '()
+                                              (list (ast:message $11-src
+                                                                 "C"
+                                                                 '() '() '()
+                                                                 '()' () '() '()))
+                                              '() '() '()))
+                           (list (ast:enum $19-src
+                                           "D"
+                                           (list (ast:enum-val $22-src "o" 0 '()))
+                                           '()))
+                           (list 2)
+                           '()))
+
+  (parse-test [
+               KW-syntax EQ (STRINGLIT "proto3") SEMI
+               KW-message "A" LC
+               KW-option "opt" EQ (FLOATLIT 3.0) SEMI
+               KW-int32 "x" EQ (INTLIT 0)
+               LB "iopt1" EQ KW-true
+               COMMA "iopt2" EQ (STRINGLIT "yes") RB SEMI
+               RC
+               KW-enum "B" LC
+               "o" EQ (INTLIT 0) LB LP "iopt3" RP EQ (INTLIT 7) RB SEMI
+               KW-option "opt" EQ KW-false SEMI
+               RC
+               ]
+              (ast:message $5-src
+                           "A"
+                           (list (ast:field $13-src
+                                            "x"
+                                            0
+                                            'optional
+                                            'int32
+                                            (list (ast:option $18-src #f '("iopt1") #t)
+                                                  (ast:option $22-src #f '("iopt2") "yes"))))
+                           '() '() '() '() '()
+                           (list (ast:option $8-src #f '("opt") 3.0)))
+              (ast:enum $28-src
+                        "B"
+                        (list (ast:enum-val $31-src
+                                            "o"
+                                            0
+                                            (list (ast:option $35-src "iopt3" '() 7))))
+                        (list (ast:option $42-src #f '("opt") #f))))
+
   )
