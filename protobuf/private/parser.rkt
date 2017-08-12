@@ -142,7 +142,7 @@
                                    (ast:package-decl 2nd-src _)
                                    _)
                             (raise-parse-error 2nd-src "package already declared as ~v" x)])])
-           (ast:file ($1-src)
+           (ast:root ($1-src)
                      pkg-name
                      imports
                      msgs

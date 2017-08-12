@@ -7,7 +7,8 @@
           (struct ast ([loc srcloc?])))
          ast:options?
          ast:type?
-         empty-options)
+         empty-options
+         ast-source)
 
 
 (struct ast (loc) #:transparent)
@@ -28,12 +29,10 @@
    [names         (listof string?)]
    [value         any/c]))
 
-(define empty-options '())
-
 (define ast:options?
   (listof ast:option?))
 
-(define-ast-struct ast:file
+(define-ast-struct ast:root
   ([package          string?]
    [imports          (listof ast:import?)]
    [messages         (listof ast:message?)]
@@ -96,3 +95,9 @@
         'int64 'uint64 'sint64 'fixed64 'sfixed64 'double
         'bool 'string 'bytes
         string?))             ; unresolved type name
+
+
+(define empty-options '())
+
+(define (ast-source f)
+  (srcloc-source (ast-loc f)))

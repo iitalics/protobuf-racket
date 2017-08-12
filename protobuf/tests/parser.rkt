@@ -50,10 +50,10 @@
 
        ; things to check
        #:with ([accessor expecteds ...] ...)
-       #'( [ast:file-imports    exp-imports ...]
-           [ast:file-messages   exp-msgs ...]
-           [ast:file-enums      exp-enums ...]
-           [ast:file-options    exp-opts ...] )
+       #'( [ast:root-imports    exp-imports ...]
+           [ast:root-messages   exp-msgs ...]
+           [ast:root-enums      exp-enums ...]
+           [ast:root-options    exp-opts ...] )
 
        #'(let ([$k-src (make-srcloc test-name ln col 1 #f)] ...)
            ; parse it
@@ -62,7 +62,7 @@
                     (parameterize ([current-parse-source test-name])
                       (parse-ast/sequence
                        (list (position-token token-expr k-pos k-pos) ...))))])
-             (check-equal? (ast:file-package ast) exp-pkg-name)
+             (check-equal? (ast:root-package ast) exp-pkg-name)
              (for ([x (in-list (accessor ast))]
                    [y (list expecteds ...)])
                (check-equal? x y)) ...))]))
