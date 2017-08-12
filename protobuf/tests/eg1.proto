@@ -1,25 +1,16 @@
 syntax = "proto3";
 package racket.protobuf;
 
-message RGB {
-
-  enum Color {
-    option allow_alias = true;
-    Red = 0;
-    Green = 1;
-    Lime = 1 [(special) = true];
-    Blue = 3;
+message JSON {
+  oneof data {
+    string text = 0;
+    double number = 1;
+    bool boolean = 2;
+    Array array = 3;
+    Dict dict = 4;
   }
-
-  Color red = 0;
-  Color green = 1;
-  Color blue = 2;
-  reserved 3;
 }
 
-message Pixels {
-  uint32 width = 0;
-  uint32 height = 1;
-  bool has_alpha = 2 [default = true];
-  repeated RGB colors = 3;
+message Array {
+  repeated JSON elem = 0;
 }

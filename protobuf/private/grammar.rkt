@@ -224,14 +224,15 @@
    [(KW-message IDENT LC <msg-elems> RC)
     (match (distinguish $4 #:reverse? #t
                         ast:field?
+                        ast:oneof?
                         ast:message?
                         ast:enum?
                         ast:option?)
-      [(list fields messages enums options other)
+      [(list fields oneofs messages enums options other)
        (ast:message ($1-src)
                     $2
                     fields
-                    '()
+                    oneofs
                     '()
                     messages
                     enums
@@ -243,7 +244,7 @@
    [(<msg-elems> <enum>) (cons $2 $1)]
    [(<msg-elems> <message>) (cons $2 $1)]
    [(<msg-elems> <option>) (cons $2 $1)]
-   ; TODO: oneof
+   [(<msg-elems> <oneof>) (cons $2 $1)]
    ; TODO: map-field
    [(<msg-elems> <reserved>) (cons $2 $1)]
    [(<msg-elems> <empty>) $1]
@@ -297,5 +298,21 @@
   (<enum-val>
    [(IDENT EQ INTLIT <field-options> SEMI)
     (ast:enum-val ($1-src) $1 $3 $4)])
+
+
+  ;;    oneof
+  (<oneof>
+   [(KW-oneof IDENT LC <oneof-fields> RC)
+    (ast:oneof ($1-src) $2 (reverse $4))])
+
+  (<oneof-fields>
+   [(<oneof-fields> <oneof-field>) (cons $2 $1)]
+   [(<oneof-fields> <empty>) $1]
+   [() '()])
+
+  (<oneof-field>
+   [(<type> IDENT EQ INTLIT <field-options> SEMI)
+    (ast:field ($1-src) $2 $4 'optional $1 $5)])
+
 
   )
