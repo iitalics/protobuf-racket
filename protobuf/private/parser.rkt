@@ -7,6 +7,14 @@
          parser-tools/yacc
          racket/match)
 
+(provide current-parse-source-path
+         raise-parse-error
+         parse-ast/generator ; takes a generator
+         parse-ast/sequence ; takes a token sequence
+         parse-ast/port ; takes an inport port
+         parse-ast ; takes a filename, input port, or generator
+         )
+
 
 (define current-parse-source-path
   (make-parameter #f))
@@ -117,7 +125,7 @@
   (<file>
    [(<syntax> <toplevels>)
     (if (equal? $1 "proto3")
-        $2
+        (reverse $2)
         (raise-parse-error ($1-src)
                            (format "unsupported syntax ~v, expected ~v"
                                    $1 "proto3")))])
