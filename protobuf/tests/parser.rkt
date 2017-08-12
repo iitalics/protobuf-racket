@@ -174,4 +174,39 @@
                                             (list (ast:option $35-src "iopt3" '() 7))))
                         (list (ast:option $42-src #f '("opt") #f))))
 
+  (parse-test [
+               KW-syntax EQ (STRINGLIT "proto3") SEMI
+               KW-message "A" LC
+               KW-map LT KW-fixed32 COMMA KW-string GT "tbl" EQ (INTLIT 0) SEMI
+               KW-oneof "one" LC
+               KW-uint32 "i" EQ (INTLIT 1) SEMI
+               KW-double "d" EQ (INTLIT 2) SEMI
+               RC
+               RC
+               ]
+              (ast:message $5-src
+                           "A"
+                           '()
+                           (list (ast:oneof $18-src
+                                            "one"
+                                            (list (ast:field $21-src
+                                                             "i"
+                                                             1
+                                                             'optional
+                                                             'uint32
+                                                             '())
+                                                  (ast:field $26-src
+                                                             "d"
+                                                             2
+                                                             'optional
+                                                             'double
+                                                             '()))))
+                           (list (ast:map-field $8-src
+                                                "tbl"
+                                                0
+                                                'fixed32
+                                                'string
+                                                '()))
+                           '() '() '() '()))
+
   )
