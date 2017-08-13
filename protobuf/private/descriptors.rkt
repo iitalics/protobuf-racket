@@ -24,8 +24,8 @@
 (define-simple-class file-descriptor% object%
   ([path (error "file path must be set")]
    [package ""]
-   [imports '() #:list]
-   [public-imports '() #:list]
+   [dependencies '()]
+   [public-dependencies '()]
    [message-types '() #:list]
    [enum-types '() #:list]
    [file-options (new file-options%)]))
