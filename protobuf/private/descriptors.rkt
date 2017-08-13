@@ -2,6 +2,21 @@
 (require racket/class
          "oop-utils.rkt")
 
+(provide file-descriptor%
+         descriptor%
+         field-descriptor%
+         oneof-descriptor%
+         enum-descriptor%
+         enum-value%
+
+         options%
+         file-options%
+         message-options%
+         field-options%
+         oneof-options%
+         enum-options%
+         enum-value-options%)
+
 ;; these classes are derived almost exactly from google/protobuf/descriptor.proto
 ;;   that .proto file is licensed under Copyright 2008 Google Inc.  All rights reserved.
 ;;   and written by Kenton Varda
