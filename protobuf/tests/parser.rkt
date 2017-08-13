@@ -81,8 +81,8 @@
                KW-import KW-public (STRINGLIT "foo/baz") SEMI
                ]
               #:imports
-              (ast:import $5-src "foo/bar" #f)
-              (ast:import $8-src "foo/baz" #t))
+              (ast:import $5-src "foo/bar" (box #f) #f)
+              (ast:import $8-src "foo/baz" (box #f) #t))
 
   (parse-test [
                KW-syntax EQ (STRINGLIT "proto3") SEMI
