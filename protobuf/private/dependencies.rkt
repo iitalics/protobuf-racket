@@ -59,7 +59,7 @@
   ;;       ; p2 ≤ p0
   (define preorders (make-hash))
 
-  ;; asts : (alistof path? => ast:root?)
+  ;; asts : (listof ast:root?)
   (define asts '())
 
   ;; traverse-deps : path-string? (listof path?) -> complete-path?
@@ -81,12 +81,17 @@
         [(not (hash-has-key? preorders resolved-path))
          ; parse the AST and extract the dependencies
          (let* ([root (parse-ast resolved-path)]
-                [deps (parameterize ([current-directory (path-only resolved-path)])
-                        (for/list ([imp (in-list (ast:root-imports root))])
-                          (traverse-deps (ast:import-path imp)
-                                         (cons resolved-path pending))))])
-           (set! asts (cons (cons resolved-path root) asts))
-           (hash-set! preorders resolved-path deps))])
+                [dep-paths (parameterize ([current-directory (path-only resolved-path)])
+                             (for/list ([imp (in-list (ast:root-imports root))])
+                               (traverse-deps (ast:import-path imp)
+                                              (cons resolved-path pending))))])
+           ; update preorders and AST list
+           (set! asts (cons root asts))
+           (hash-set! preorders resolved-path dep-paths)
+           ; update resolved paths within each import
+           (for ([dep-path (in-list dep-paths)]
+                 [imp (in-list (ast:root-imports root))])
+             (set-box! (ast:import-resolved-path-box imp) dep-path)))])
 
       resolved-path))
 
@@ -100,7 +105,7 @@
                (hash-ref preorders p1 '()))))
 
   ;; sort paths by preorder and return corresponding asts
-  (map cdr (sort asts dep<=? #:key car)))
+  (sort asts dep<=? #:key ast-source))
 
 
 

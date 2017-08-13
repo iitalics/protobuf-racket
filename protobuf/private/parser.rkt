@@ -186,8 +186,8 @@
    [() '()])
 
   (<import>
-   [(KW-import STRINGLIT SEMI) (ast:import ($1-src) $2 #f)]
-   [(KW-import KW-public STRINGLIT SEMI) (ast:import ($1-src) $3 #t)])
+   [(KW-import STRINGLIT SEMI) (ast:import ($1-src) $2 (box #f) #f)]
+   [(KW-import KW-public STRINGLIT SEMI) (ast:import ($1-src) $3 (box #f) #t)])
 
   (<package>
    [(KW-package <full-ident> SEMI) (ast:package-decl ($1-src) $2)])

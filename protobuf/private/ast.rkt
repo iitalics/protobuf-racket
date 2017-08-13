@@ -1,10 +1,8 @@
 #lang racket/base
-(require (for-syntax racket/base
-                     syntax/parse)
+(require (for-syntax racket/base syntax/parse)
          racket/contract)
 
-(provide (contract-out
-          (struct ast ([loc srcloc?])))
+(provide (contract-out (struct ast ([loc srcloc?])))
          ast:options?
          ast:type?
          empty-options
@@ -44,6 +42,7 @@
 
 (define-ast-struct ast:import
   ([path             string?]
+   [resolved-path-box box?]
    [public?          boolean?]))
 
 (define-ast-struct ast:message
