@@ -33,32 +33,26 @@ cycle detected
        #'(check-exn exn? (λ ()
                            (parse+dependencies (list in-path ...))))]))
 
-  (dep-test
-   #:input ("files/top.proto" "files/extra.proto")
-   #:order ("files/extra.proto"
-            "files/sub1.proto"
-            "files/sub2.proto"
-            "files/top.proto"))
+  (parameterize ([extra-proto-paths '("files/deps")])
 
-  (parameterize ([extra-proto-paths '("files")])
     (dep-test
      #:input ("top.proto" "extra.proto")
      #:order ("extra.proto"
               "sub1.proto"
               "sub2.proto"
-              "top.proto")))
+              "top.proto"))
 
-  (dep-test
-   #:input ("files/nonexistant.proto")
-   #:error (λ (e)
-             (and (exn:fail:filesystem? e)
-                  (equal? (exn-message e) "cannot find protobuf file \"files/nonexistant.proto\""))))
+    (dep-test
+     #:input ("nonexistant.proto")
+     #:error (λ (e)
+               (and (exn:fail:filesystem? e)
+                    (equal? (exn-message e) "cannot find protobuf file \"nonexistant.proto\""))))
 
-  (dep-test
-   #:input ("files/bad1.proto")
-   #:error (λ (e)
-             (and (exn:fail:user? e)
-                  (equal? (exn-message e)
-                          "cyclic dependencies found between \"bad1.proto\" and \"bad3.proto\""))))
+    (dep-test
+     #:input ("bad1.proto")
+     #:error (λ (e)
+               (and (exn:fail:user? e)
+                    (equal? (exn-message e)
+                            "cyclic dependencies found between \"bad1.proto\" and \"bad3.proto\""))))
 
-  )
+    ))
