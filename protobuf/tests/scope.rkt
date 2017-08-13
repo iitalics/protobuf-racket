@@ -70,9 +70,10 @@
   (check-equal? (resolve-type "pkg2.C" s@<test.pkg2.sub>) 'pkg2-C)
   (check-equal? (resolve-type "pkg2.sub.C" s@<test.pkg2.sub>) 'pkg2-sub-C)
 
-  (check-equal? (resolve-type "pkg1.C" s@<test>) 'pkg1-C)
-  (check-equal? (resolve-type "test.pkg1.C" s@<test>) 'pkg1-C)
-  (check-equal? (resolve-type ".test.pkg1.C" s@<test>) 'pkg1-C)
+  (check-equal? (resolve-type "C" s@<test.pkg2>) 'pkg2-C)
+  (check-equal? (resolve-type "pkg1.C" s@<test.pkg2>) #f)
+  (check-equal? (resolve-type "test.pkg1.C" s@<test.pkg2>) #f)
+  (check-equal? (resolve-type ".test.pkg1.C" s@<test.pkg2>) #f)
 
   (for ([x (list "test.pkg1.A"
                  "test.pkg1.B"
