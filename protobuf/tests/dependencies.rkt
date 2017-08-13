@@ -26,7 +26,7 @@ cycle detected
           #:order (out-path:str ...))
        #'(check-equal? (map ast-source
                             (parse+dependencies (list in-path ...)))
-                       (list (path->complete-path out-path) ...))]
+                       (list (resolve-file out-path) ...))]
 
       [(_ #:input (in-path:str ...)
           #:error exn?)
@@ -39,6 +39,14 @@ cycle detected
             "files/sub1.proto"
             "files/sub2.proto"
             "files/top.proto"))
+
+  (parameterize ([extra-proto-paths '("files")])
+    (dep-test
+     #:input ("top.proto" "extra.proto")
+     #:order ("extra.proto"
+              "sub1.proto"
+              "sub2.proto"
+              "top.proto")))
 
   (dep-test
    #:input ("files/nonexistant.proto")
