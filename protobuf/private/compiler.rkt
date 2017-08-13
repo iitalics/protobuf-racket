@@ -1,10 +1,7 @@
-#lang racket/base
+#lang racket
 (require "ast.rkt"
          "dependencies.rkt"
-         "descriptors.rkt"
-         racket/class
-         racket/set
-         racket/match)
+         "descriptors.rkt")
 
 (provide current-file-desc-pool
          compile-root
@@ -46,10 +43,6 @@
                    #:when (ast:import-public? imp))
           dep))
 
-  (verify-no-type-conflicts
-   (ast:root-messages root) ast:message-name
-   (ast:root-enums root) ast:enum-name)
-
   (send fd set-message-types
         (map ast:message->descriptor%
              (ast:root-messages root)))
@@ -73,11 +66,6 @@
 (define (ast:message->descriptor% ast)
   (define msgd (new descriptor%
                   [name (ast:message-name ast)]))
-
-  (verify-no-type-conflicts
-   (ast:message-nested-msgs ast) ast:message-name
-   (ast:message-nested-enums ast) ast:enum-name)
-
   (send msgd set-nested-types
         (map ast:message->descriptor%
              (ast:message-nested-msgs ast)))
@@ -97,17 +85,3 @@
   )
 
 
-;; raises an error if any of the messages or enums have conflicting names
-(define (verify-no-type-conflicts . args)
-  (define names (mutable-set))
-  (let trav ([args args])
-    (match args
-      ['() (void)]
-      [(list* asts get-name rest)
-       (for ([ast (in-list asts)])
-         (when (set-member? names (get-name ast))
-           (raise-compile-error (ast-loc ast)
-                                "encountered multiple types named ~v"
-                                (get-name ast)))
-         (set-add! names (get-name ast)))
-       (trav rest)])))
