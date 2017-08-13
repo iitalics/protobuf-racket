@@ -5,7 +5,8 @@
 (provide default-proto-paths
          extra-proto-paths
          current-proto-paths
-         resolve-file)
+         resolve-file
+         parse+dependencies)
 
 ; google's source does this is in a strange way, and doesn't document it very well.
 ; what we'll do instead is have "default-proto-paths" like /usr/include, and

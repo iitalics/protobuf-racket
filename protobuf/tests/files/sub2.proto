@@ -1,0 +1,4 @@
+syntax = "proto3";
+package dep.tests;
+import "extra.proto";
+import "sub1.proto";
