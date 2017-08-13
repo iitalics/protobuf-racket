@@ -6,6 +6,7 @@
          scope?
          scope-leaf
          subscope
+         subscope*
          resolve-type)
 
 (define-generics scope
@@ -19,10 +20,22 @@
   [subscope scope name]
 
   ;; return something directly in this scope that isn't just a subscope
-  ;; in particular, this is usually a type name.
+  ;; in particular, this is usually a type.
+  ;; (scope-leaf <package google> "protobuf") = #f
   ;; (scope-leaf <package google.protobuf> "Any") = <descriptor%>
   ;; (scope-leaf <message google.protobuf.FieldDescriptor> "Type") = <enum-descriptor%>
   [scope-leaf scope name])
+
+
+;; repeated application of subscope
+;; e.g. (subscope* <package a> '("b" "c")) = <package a.b.c>
+;; (if that package exists)
+;; returns #f it doesn't exist.
+(define (subscope* scope path)
+  (cond
+    [(null? path) scope]
+    [(subscope scope (car path)) => (λ (ss) (subscope* ss (cdr path)))]
+    [else #f]))
 
 
 ;; resolve a type by the given name by searching the list of scopes.
@@ -48,11 +61,7 @@
 ;; resolve a type in a single scope. 'path' is the list of namespace
 ;; prefixes, and 'name' is the final element.
 ;; e.g. for "google.protobuf.Any": path = '("google" "protobuf"), name = "Any"
-;; returns #f if type not found
+;; returns #f if type can't be found
 (define (resolve-type/scope path name scope)
-  (cond
-    [(null? path) (scope-leaf scope name)]
-    [(subscope scope (car path))
-     => (λ (ss)
-          (resolve-type/scope (cdr path) name ss))]
-    [else #f]))
+  (let ([ss (subscope* scope path)])
+    (and ss (scope-leaf ss name))))
