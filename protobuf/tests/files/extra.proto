@@ -1,2 +1,1 @@
 syntax = "proto3";
-import "sub1.proto";

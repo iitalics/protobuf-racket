@@ -26,7 +26,7 @@ cycle detected
           #:order (out-path:str ...))
        #'(check-equal? (map ast-source
                             (parse+dependencies (list in-path ...)))
-                       (list (path->complete-path out-path ...)))]
+                       (list (path->complete-path out-path) ...))]
 
       [(_ #:input (in-path:str ...)
           #:error exn?)
@@ -35,7 +35,10 @@ cycle detected
 
   (dep-test
    #:input ("files/top.proto" "files/extra.proto")
-   #:order ("files/extra.proto" "files/sub1.proto" "files/sub2.proto" "files/extra.proto"))
+   #:order ("files/extra.proto"
+            "files/sub1.proto"
+            "files/sub2.proto"
+            "files/top.proto"))
 
   (dep-test
    #:input ("files/nonexistant.proto")
@@ -48,6 +51,6 @@ cycle detected
    #:error (λ (e)
              (and (exn:fail:user? e)
                   (equal? (exn-message e)
-                          "cyclic dependencies found between \"files/bad1.proto\" and \"files/bad3.proto\""))))
+                          "cyclic dependencies found between \"bad1.proto\" and \"bad3.proto\""))))
 
   )

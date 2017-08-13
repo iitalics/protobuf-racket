@@ -1,12 +1,15 @@
 #lang racket/base
 (require "ast.rkt"
-         racket/path)
+         "parser.rkt"
+         racket/path
+         racket/list)
 
 (provide default-proto-paths
          extra-proto-paths
          current-proto-paths
          resolve-file
-         parse+dependencies)
+         parse+dependencies
+         (struct-out exn:fail:user:dependency-cycle))
 
 ; google's source does this is in a strange way, and doesn't document it very well.
 ; what we'll do instead is have "default-proto-paths" like /usr/include, and
@@ -41,13 +44,81 @@
                (simple-form-path full))))))
 
 
-;; parse+dependencies : (listof string/path?) -> (listof ast:file?)
+;; parse+dependencies : (listof path-string?) -> (listof ast:file?)
 ;;   parses .proto files from the given paths, and all files referenced
 ;;   by those paths. returns the parsed ASTs in the correct dependency order
-;;   such that no AST depends on one that appears before it
+;;   such that no AST depends on one that appears before it.
+;;   the exact order is unspecified for paths which do not depend on eachother.
 (define (parse+dependencies initial-paths)
 
-  ;; TODO: create a dependency tree, then collect them
-  ;;  with post-order traversal
+  ;; preorders : path? => (listof path?)
+  ;;  specifies a paths that the key depends on
+  ;;  e.g. if (hash-ref preoders p0) = (list p1 p2)
+  ;;    then p0 requires p1, p2
+  ;;       ; p1 ≤ p0
+  ;;       ; p2 ≤ p0
+  (define preorders (make-hash))
 
-  (error "unimplemented"))
+  ;; asts : (alistof path? => ast:root?)
+  (define asts '())
+
+  ;; traverse-deps : path-string? (listof path?) -> complete-path?
+  ;;  resolve & parse a file. takes a list of 'pending' paths such that
+  ;;  if the given file depends on one of those paths, we've created
+  ;;  a dependency cycle and should abort.
+  ;;  returns the resolved version of the given path, and adds an
+  ;;  entry to the assoc-list 'asts'
+  (define (traverse-deps path [pending '()])
+    (let ([resolved-path
+           (or (resolve-file path)
+               (raise-not-found path))])
+      (cond
+        [(member resolved-path pending)
+         => (λ _
+              (raise-cycle-error resolved-path
+                                 (car pending)))]
+
+        [(not (hash-has-key? preorders resolved-path))
+         ; parse the AST and extract the dependencies
+         (let* ([root (parse-ast resolved-path)]
+                [deps
+                 (parameterize ([current-directory (path-only resolved-path)])
+                   (for/list ([imp (in-list (ast:root-imports root))])
+                     (traverse-deps (ast:import-path imp)
+                                    (cons resolved-path pending))))])
+           (set! asts (cons (cons resolved-path root) asts))
+           (hash-set! preorders resolved-path deps))])
+
+      resolved-path))
+
+  (for-each traverse-deps initial-paths)
+
+  ;; evaluate a preorder using reflexivity or transitivity
+  (define (dep<=? p1 p2) (dep>=? p2 p1))
+  (define (dep>=? p1 p2)
+    (or (equal? p1 p2)
+        (ormap (λ (p1-) (dep>=? p1- p2))
+               (hash-ref preorders p1 '()))))
+
+  ;; sort paths by preorder and return corresponding asts
+  (map cdr (sort asts dep<=? #:key car)))
+
+
+
+(define (raise-not-found path)
+  (raise (exn:fail:filesystem (format "cannot find protobuf file ~v"
+                                      (if (string? path) path
+                                          (path->string path)))
+                              (current-continuation-marks))))
+
+(define-struct (exn:fail:user:dependency-cycle
+                exn:fail:user)
+  (paths))
+
+(define (raise-cycle-error path1 path2)
+  (raise (make-exn:fail:user:dependency-cycle
+          (format "cyclic dependencies found between ~v and ~v"
+                  (path->string (file-name-from-path path1))
+                  (path->string (file-name-from-path path2)))
+          (current-continuation-marks)
+          (list path1 path2))))
