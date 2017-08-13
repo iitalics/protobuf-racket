@@ -10,23 +10,23 @@
 
   ;; test (resolve-file)
 
-  (define path-dummy (cd "dep-tests/dummy1.txt"))
+  (define path-dummy (cd "files/dummy1.txt"))
 
-  (parameterize ([default-proto-paths '("dep-tests/nested")]
-                 [extra-proto-paths '("dep-tests")])
+  (parameterize ([default-proto-paths '("files/nested")]
+                 [extra-proto-paths '("files")])
     (check-equal? (current-proto-paths)
                   (list (cd)
-                        (cd "dep-tests")
-                        (cd "dep-tests/nested"))))
+                        (cd "files")
+                        (cd "files/nested"))))
 
-  (check-equal? (resolve-file "dep-tests/dummy1.txt") path-dummy)
-  (check-equal? (resolve-file "../tests/dep-tests/dummy1.txt") path-dummy)
+  (check-equal? (resolve-file "files/dummy1.txt") path-dummy)
+  (check-equal? (resolve-file "../tests/files/dummy1.txt") path-dummy)
 
-  (parameterize ([extra-proto-paths '("dep-tests")])
+  (parameterize ([extra-proto-paths '("files")])
     (check-equal? (resolve-file "dummy1.txt") path-dummy))
 
-  (parameterize ([default-proto-paths '("dep-tests/nested")]
-                 [extra-proto-paths '("dep-tests")])
+  (parameterize ([default-proto-paths '("files/nested")]
+                 [extra-proto-paths '("files")])
     (check-equal? (resolve-file "dummy1.txt") path-dummy))
 
   (check-equal? (resolve-file "/etc/hostname")
