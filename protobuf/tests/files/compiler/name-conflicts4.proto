@@ -1,0 +1,7 @@
+syntax = 'proto3';
+
+message A {
+  uint32 x = 1;
+  uint32 y = 2;
+  uint32 x = 3;
+}

@@ -1,0 +1,13 @@
+syntax = 'proto3';
+
+message A {
+}
+
+message B {
+  message A {
+  }
+  message C {
+    enum A { Entry = 0; }
+  }
+  uint32 Entry = 1;
+}

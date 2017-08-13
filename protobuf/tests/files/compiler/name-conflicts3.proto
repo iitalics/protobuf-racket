@@ -1,12 +1,12 @@
 syntax = 'proto3';
 
-message A {
-  message B {
-    message C {
+message O {
+  message A {
+    message B {
     }
   }
-  message C {
-  }
   message B {
+  }
+  message A {
   }
 }

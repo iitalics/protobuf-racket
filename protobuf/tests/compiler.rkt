@@ -18,16 +18,19 @@
 
     ;; test name conflicts
 
-    (check-exn (exn-matches exn:fail:compile? #px"encountered multiple types named \"A\"")
-               (λ ()
-                 (resolve+parse+compile "name-conflicts1.proto")))
+    (for ([filename '("name-conflicts1.proto"
+                      "name-conflicts2.proto"
+                      "name-conflicts3.proto")])
+      (check-exn (exn-matches exn:fail:compile? #px"encountered multiple types named \"A\"")
+                 (λ () (resolve+parse+compile filename))))
 
-    (check-exn (exn-matches exn:fail:compile? #px"encountered multiple types named \"A\"")
-               (λ ()
-                 (resolve+parse+compile "name-conflicts2.proto")))
+    (for ([filename '("name-conflicts4.proto"
+                      "name-conflicts5.proto"
+                      "name-conflicts6.proto"
+                      "name-conflicts7.proto")])
+      (check-exn (exn-matches exn:fail:compile? #px"encountered multiple fields named \"x\"")
+                 (λ () (resolve+parse+compile filename))))
 
-    (check-exn (exn-matches exn:fail:compile? #px"encountered multiple types named \"B\"")
-               (λ ()
-                 (resolve+parse+compile "name-conflicts3.proto")))
+    (check-not-exn (λ () (resolve+parse+compile "name-conflicts8.proto")))
 
     ))
