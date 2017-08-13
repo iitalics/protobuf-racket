@@ -81,11 +81,10 @@
         [(not (hash-has-key? preorders resolved-path))
          ; parse the AST and extract the dependencies
          (let* ([root (parse-ast resolved-path)]
-                [deps
-                 (parameterize ([current-directory (path-only resolved-path)])
-                   (for/list ([imp (in-list (ast:root-imports root))])
-                     (traverse-deps (ast:import-path imp)
-                                    (cons resolved-path pending))))])
+                [deps (parameterize ([current-directory (path-only resolved-path)])
+                        (for/list ([imp (in-list (ast:root-imports root))])
+                          (traverse-deps (ast:import-path imp)
+                                         (cons resolved-path pending))))])
            (set! asts (cons (cons resolved-path root) asts))
            (hash-set! preorders resolved-path deps))])
 
@@ -111,9 +110,7 @@
                                           (path->string path)))
                               (current-continuation-marks))))
 
-(define-struct (exn:fail:user:dependency-cycle
-                exn:fail:user)
-  (paths))
+(define-struct (exn:fail:user:dependency-cycle exn:fail:user) (paths))
 
 (define (raise-cycle-error path1 path2)
   (raise (make-exn:fail:user:dependency-cycle

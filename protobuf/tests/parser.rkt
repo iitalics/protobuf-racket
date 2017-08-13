@@ -16,8 +16,7 @@
   (define-syntax parse-test
     (syntax-parser
       [(_ (token ...)
-          (~optional (~seq #:package exp-pkg-name:str)
-                     #:defaults ([exp-pkg-name #'""]))
+          (~optional (~seq #:package exp-pkg-name:str) #:defaults ([exp-pkg-name #'""]))
           (~optional (~seq #:imports exp-imports:expr ...) #:defaults ([(exp-imports 1) '()]))
           (~optional (~seq #:messages exp-msgs:expr ...) #:defaults ([(exp-msgs 1) '()]))
           (~optional (~seq #:enums exp-enums:expr ...) #:defaults ([(exp-enums 1) '()]))
@@ -92,7 +91,7 @@
                ]
               #:options
               (ast:option $5-src #f '("option1" "x") #t)
-              (ast:option $12-src "option2.y" '("z") -3)0)
+              (ast:option $12-src "option2.y" '("z") -3))
 
   (parse-test [
                KW-syntax EQ (STRINGLIT "proto3") SEMI
