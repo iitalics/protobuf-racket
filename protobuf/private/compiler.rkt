@@ -138,7 +138,6 @@
 
     [(struct ast:message (loc name fields oneofs maps
                           messages enums reserved opts))
-
      (let* ([full-name (name-append (current-scope) name)]
             [des (new descriptor%
                       [name name]
@@ -161,7 +160,6 @@
 
 
     [(struct ast:field (loc name number label type opts))
-
      (let ([field-des (new field-descriptor%
                           [name name]
                           [number number]
@@ -181,12 +179,52 @@
 
        ;; TODO: oneof options
 
+       (add-descriptor oneof-des
+                       (name-append (current-scope) name)
+                       loc)
+
+       ;; note we don't re-parameterize scope, since sub-fields
+       ;; are scoped as "siblings" to the oneof
        (cons oneof-des
              (map (compose (λ (field-des)
                              (send field-des set-parent-oneof oneof-des)
                              field-des)
                            ast->descriptor)
                   sub-fields)))]
+
+
+    [(struct ast:enum (loc name vals opts))
+     (let ([enum-des (new enum-descriptor% [name name])])
+
+       ;; TODO: enum options
+
+       (add-descriptor enum-des
+                       (name-append (current-scope) name)
+                       loc)
+
+       ;; note we don't re-parameterize scope, since enum values
+       ;; are scoped as "siblings" to the enum
+       (send enum-des set-values (map ast->descriptor vals))
+
+       (match vals
+         [(list* (struct ast:enum-val (_ _ 0 _)) _)   'okay]
+         ['() (raise-compile-error loc "enum must contain atleast one field")]
+         [_ (raise-compile-error loc "first enum field must be number 0")])
+
+       enum-des)]
+
+
+    [(struct ast:enum-val (loc name number opts))
+     (let ([val-des (new enum-value%
+                         [name name]
+                         [number number])])
+
+       ;; TODO: enum value options
+
+       (add-descriptor val-des
+                       (name-append (current-scope) name)
+                       loc)
+       val-des)]
 
 
     [_ (format "unimplemented AST ~a" ast)]))
