@@ -106,10 +106,15 @@
 ;; does not compile any fields, just nested types.
 (define (ast:message->descriptor% ast name-prefix)
   (define msgd (new descriptor%
-                  [name (ast:message-name ast)]))
+                    [name (ast:message-name ast)]))
 
   (let ([nested-prefix (name-append name-prefix (ast:message-name ast))])
     (check-in-use nested-prefix (ast-loc ast))
+
+    ;; TODO: traverse oneofs and map-fields
+    (for ([f (in-list (ast:message-fields ast))])
+      (check-in-use (name-append nested-prefix (ast:field-name f))
+                    (ast-loc f)))
 
     (send msgd set-nested-types
           (for/list ([x (in-list (ast:message-nested-msgs ast))])
@@ -131,6 +136,23 @@
 
   (check-in-use (name-append name-prefix (ast:enum-name ast))
                 (ast-loc ast))
+
+  (send enumd set-values
+        (for/list ([ev-ast (in-list (ast:enum-values ast))]
+                   [i (in-naturals)])
+          (check-in-use (name-append name-prefix (ast:enum-val-name ev-ast))
+                        (ast-loc ev-ast))
+
+          (when (and (zero? i)
+                     (not (zero? (ast:enum-val-number ev-ast))))
+            (raise-compile-error (ast-loc ev-ast)
+                                 "first enum field must be number 0"))
+
+          ;; TODO: compile enum value options
+
+          (new enum-value%
+               [name (ast:enum-val-name ev-ast)]
+               [number (ast:enum-val-number ev-ast)])))
 
   ;; TODO: compile enum options
   enumd)
