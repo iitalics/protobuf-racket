@@ -147,10 +147,30 @@
 
        (parameterize ([current-scope full-name])
          (send des set-fields
-               ;; NOTE: append*  (not append)
-               (append* (map ast->descriptor fields)
-                        (map ast->descriptor maps)
-                        (map ast->descriptor oneofs)))
+               (append (map ast->descriptor fields)
+                       (map ast->descriptor maps)))
+
+         (send des set-oneofs
+               ;; TODO: move this out of here lol
+               (for/list ([oneof-ast (in-list oneofs)])
+                 (match-let ([(struct ast:oneof (o-loc o-name sub-fields)) oneof-ast])
+                   (let ([oneof-des (new oneof-descriptor% [name o-name])])
+
+                     ;; TODO: compile oneof options
+
+                     (add-descriptor oneof-des
+                                     (name-append (current-scope) o-name)
+                                     o-loc)
+
+                     (send des add-fields
+                           (map (compose (λ (sub-field-des)
+                                           (send sub-field-des set-parent-oneof oneof-des)
+                                           sub-field-des)
+                                         ast->descriptor)
+                                sub-fields))
+
+                     oneof-des))))
+
 
          ;; TODO: compile message options
 
@@ -172,25 +192,6 @@
                        loc)
 
        field-des)]
-
-
-    [(struct ast:oneof (loc name sub-fields))
-     (let ([oneof-des (new oneof-descriptor% [name name])])
-
-       ;; TODO: oneof options
-
-       (add-descriptor oneof-des
-                       (name-append (current-scope) name)
-                       loc)
-
-       ;; note we don't re-parameterize scope, since sub-fields
-       ;; are scoped as "siblings" to the oneof
-       (cons oneof-des
-             (map (compose (λ (field-des)
-                             (send field-des set-parent-oneof oneof-des)
-                             field-des)
-                           ast->descriptor)
-                  sub-fields)))]
 
 
     [(struct ast:enum (loc name vals opts))

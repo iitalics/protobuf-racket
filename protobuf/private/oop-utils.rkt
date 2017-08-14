@@ -32,6 +32,13 @@
       (format-id x "add-~ay" (remove-last s 3))
       (format-id x "add-~a" (remove-last s 1))))
 
+; babies => add-babies
+; adults => add-adults
+(define-for-syntax (mk-appender x)
+  (define s (symbol->string (syntax->datum x)))
+  (format-id x "add-~a" s))
+
+
 
 
 ; generate init-field, get-X, set-Y, and also add-X if #:list is supplied
@@ -42,9 +49,11 @@
      #:with getter (mk-getter #'field)
      #:with setter (mk-setter #'field)
      #:with adder (mk-adder #'field)
+     #:with appender (mk-appender #'field)
      #:with (adder-impl ...)
      (if (attribute is-list?)
-         #'[ (define/public (adder . vs) (set! field (append field vs))) ]
+         #'[ (define/public (adder . vs) (set! field (append field vs)))
+             (define/public (appender vs) (set! field (append field vs))) ]
          #'[])
      #'(begin
          (init-field [field init-val])
