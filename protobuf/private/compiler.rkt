@@ -126,11 +126,11 @@
 ;; convert ast to enum-descriptor%
 ;; does not compile values
 (define (ast:enum->enum-descriptor% ast name-prefix)
-  (new enum-descriptor%
-       [name (ast:enum-name ast)])
+  (define enumd (new enum-descriptor%
+                     [name (ast:enum-name ast)]))
 
   (check-in-use (name-append name-prefix (ast:enum-name ast))
                 (ast-loc ast))
 
   ;; TODO: compile enum options
-  )
+  enumd)

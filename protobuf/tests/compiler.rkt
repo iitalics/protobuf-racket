@@ -3,6 +3,8 @@
 (module+ test
   (require "../private/dependencies.rkt"
            "../private/compiler.rkt"
+           racket/list
+           racket/class
            rackunit)
 
   (parameterize ([extra-proto-paths '("files/compiler")])
@@ -18,13 +20,29 @@
 
 
     ;; test name conflicts
-
-    (for ([i (in-range 1 9)])
+    (for ([i '(1 2 3 4 #|5 6 7|# 8)])
       (check-exn (exn-matches exn:fail:compile? #px"already bound in ")
                  (λ () (resolve+parse+compile
                         (format "name-conflicts~a.proto" i)))
                  (format "name-conflict-~a" i)))
 
-    ;(check-not-exn (λ () (resolve+parse+compile "name-conflicts9.proto")))
+    ;; test enums
+    (check-exn (exn-matches exn:fail:compile? #px"first enum field must be number 0")
+               (λ () (resolve+parse+compile "enums1.proto")))
+
+    (check-not-exn
+     (λ ()
+       (let* ([fd (first (resolve+parse+compile "enums2.proto"))]
+              [E (first (send fd get-enum-types))]
+              [F (second (send fd get-enum-types))]
+              [E-vals (send E get-values)])
+         (check-equal? (send (first E-vals) get-name) "No")
+         (check-equal? (send (first E-vals) get-number) 0)
+         (check-equal? (send (second E-vals) get-name) "Yes")
+         (check-equal? (send (second E-vals) get-number) 1)
+         (check-equal? (send (third E-vals) get-name) "Maybe")
+         (check-equal? (send (third E-vals) get-number) 2)
+
+         (check-equal? (send (send F get-options) is-alias-allowed?) #t))))
 
     ))
