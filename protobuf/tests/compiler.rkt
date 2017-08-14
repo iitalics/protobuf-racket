@@ -25,6 +25,23 @@
                         (format "name-conflicts~a.proto" i)))
                  (format "name-conflict-~a" i)))
 
+
+    ;; test messages & basic fields
+    (check-not-exn
+     (λ ()
+       (let* ([fd (first (parse->descriptor "msgs1.proto"))]
+              [A (first (send fd get-message-types))]
+              [A-fields (send A get-fields)]
+              [B (first (send A get-nested-types))]
+              [B-fields (send B get-fields)])
+         (check-equal? (send (first A-fields) get-name) "x")
+         (check-equal? (send (first A-fields) get-label) 'optional)
+         (check-equal? (send (first A-fields) get-number) 1)
+         (check-equal? (send (second A-fields) get-name) "y")
+         (check-equal? (send (second A-fields) get-label) 'repeated)
+         (check-equal? (send (second A-fields) get-number) 2)
+         (check-equal? (send (first B-fields) get-name) "z"))))
+
     ;; test enums
     (check-exn (exn-matches exn:fail:compile? #px"first enum field must be number 0")
                (λ () (parse->descriptor "enums1.proto"))
