@@ -26,8 +26,8 @@
   ([path (error "file path must be set")]
    [origin-ast #f]
    [package ""]
-   [dependencies '()]
-   [public-dependencies '()]
+   [dependencies '() #:list]
+   [public-dependencies '() #:list]
    [message-types '() #:list]
    [enum-types '() #:list]
    [file-options (new file-options%)])
@@ -88,16 +88,16 @@
 (define-simple-class message-options% options%
   ([message-set-wire-format? #f]
    [no-standard-accessor? #f]
-   [is-map-entry? #f]))
+   [map-entry? #f]))
 
 (define-simple-class field-options% options%
   ([c-type 'string]
    [js-type 'normal]
-   [is-packed? #f]
-   [is-lazy? #f]))
+   [packed? #f]
+   [lazy? #f]))
 
 (define-simple-class enum-options% options%
-  ([allow-alias? #f]))
+  ([alias-allowed? #f]))
 
 ; these classes don't provide any additional options, so just use options%
 (define oneof-options% options%)

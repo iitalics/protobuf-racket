@@ -3,19 +3,45 @@
 (provide gen-pub+get/set
          define-simple-class)
 
-;; remove 's' from symbol name e.g. 'names => 'name
-(define-for-syntax (remove-s sym)
-  (let ([s (symbol->string sym)])
-    (string->symbol (substring s 0 (sub1 (string-length s))))))
+;; remove last k (default: 1) characters from string/symbol
+(define-for-syntax (remove-last sym [k 1])
+  (let ([s (if (string? sym) sym (symbol->string sym))])
+    (string->symbol (substring s 0 (- (string-length s) k)))))
+
+; foo? => is-foo?
+; bar  => get-bar
+(define-for-syntax (mk-getter x)
+  (define s (symbol->string (syntax->datum x)))
+  (if (regexp-match? #px".+\\?" s)
+      (format-id x "is-~a" s)
+      (format-id x "get-~a" s)))
+
+; foo? => set-foo
+; bar  => set-bar
+(define-for-syntax (mk-setter x)
+  (define s (symbol->string (syntax->datum x)))
+  (if (regexp-match? #px".+\\?" s)
+      (format-id x "set-~a" (remove-last s))
+      (format-id x "set-~a" s)))
+
+; babies => add-baby
+; adults => add-adult
+(define-for-syntax (mk-adder x)
+  (define s (symbol->string (syntax->datum x)))
+  (if (regexp-match? #rx"ies$" s)
+      (format-id x "add-~ay" (remove-last s 3))
+      (format-id x "add-~a" (remove-last s 1))))
+
+
 
 ; generate init-field, get-X, set-Y, and also add-X if #:list is supplied
 (define-syntax gen-pub+get/set
   (syntax-parser
     [(_ field:id init-val (~optional (~and #:list (~bind [is-list? #t]))))
      #:with init-field (datum->syntax this-syntax 'init-field)
-     #:with getter (format-id this-syntax "get-~a" #'field)
-     #:with setter (format-id this-syntax "set-~a" #'field)
-     #:with adder (format-id this-syntax "add-~a" (remove-s (syntax-e #'field)))
+     #:with getter (mk-getter #'field)
+     #:with setter (mk-setter #'field)
+     #:with adder (mk-adder #'field)
      #:with (adder-impl ...)
      (if (attribute is-list?)
          #'[ (define/public (adder . vs) (set! field (append field vs))) ]
