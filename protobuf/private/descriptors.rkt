@@ -1,5 +1,6 @@
 #lang racket/base
 (require racket/class
+         racket/string
          "oop-utils.rkt")
 
 (provide file-descriptor%
@@ -23,12 +24,16 @@
 
 (define-simple-class file-descriptor% object%
   ([path (error "file path must be set")]
+   [origin-ast #f]
    [package ""]
    [dependencies '()]
    [public-dependencies '()]
    [message-types '() #:list]
    [enum-types '() #:list]
-   [file-options (new file-options%)]))
+   [file-options (new file-options%)])
+
+  (define/public (get-package-path)
+    (string-split package ".")))
 
 (define-simple-class descriptor% object%
   ([name (error "descriptor name must be set")]
