@@ -42,6 +42,20 @@
          (check-equal? (send (second A-fields) get-number) 2)
          (check-equal? (send (first B-fields) get-name) "z"))))
 
+    ;; test oneofs
+    (check-not-exn
+     (λ ()
+       (let* ([fd (first (parse->descriptor "msgs2.proto"))]
+              [A (first (send fd get-message-types))]
+              [O (first (send A get-oneofs))]
+              [fields (send A get-fields)])
+         (check-equal? (send (first fields) get-parent-oneof) #f)
+         (check-equal? (send (second fields) get-parent-oneof) #f)
+         (check-equal? (send (third fields) get-parent-oneof) O)
+         (check-equal? (send (third fields) get-label) 'optional)
+         (check-equal? (send (fourth fields) get-parent-oneof) O)
+         (check-equal? (send (fourth fields) get-label) 'optional))))
+
     ;; test enums
     (check-exn (exn-matches exn:fail:compile? #px"first enum field must be number 0")
                (λ () (parse->descriptor "enums1.proto"))
@@ -60,6 +74,6 @@
          (check-equal? (send (third E-vals) get-name) "Maybe")
          (check-equal? (send (third E-vals) get-number) 2)
 
-         (check-equal? (send (send F get-options) is-alias-allowed?) #t))))
+         (check-true (send (send F get-options) is-alias-allowed?)))))
 
     ))
