@@ -16,27 +16,28 @@
          field-options%
          oneof-options%
          enum-options%
-         enum-value-options%)
+         enum-value-options%
+
+         current-file-descriptor)
 
 ;; these classes are derived almost exactly from google/protobuf/descriptor.proto
 ;;   that .proto file is licensed under Copyright 2008 Google Inc.  All rights reserved.
 ;;   and written by Kenton Varda
 
 (define-simple-class file-descriptor% object%
-  ([path (error "file path must be set")]
-   [origin-ast #f]
+  ([file-path (error "file path must be set")]
    [package ""]
    [dependencies '() #:list]
    [public-dependencies '() #:list]
    [message-types '() #:list]
    [enum-types '() #:list]
-   [file-options (new file-options%)])
+   [file-options (new file-options%)]))
 
-  (define/public (get-package-path)
-    (string-split package ".")))
+(define current-file-descriptor (make-parameter #f))
 
 (define-simple-class descriptor% object%
   ([name (error "descriptor name must be set")]
+   [file-descriptor (current-file-descriptor)]
    [fields '() #:list]
    [oneofs '() #:list]
    [nested-types '() #:list]
@@ -46,23 +47,27 @@
 
 (define-simple-class field-descriptor% object%
   ([name (error "field name must be set")]
+   [file-descriptor (current-file-descriptor)]
    [number (error "field number must be set")]
    [label 'optional]
-   [type (error "field type must be set")]
+   [type #f]
    [parent-oneof #f]
    [options (new field-options%)]))
 
 (define-simple-class oneof-descriptor% object%
   ([name (error "oneof name must be set")]
+   [file-descriptor (current-file-descriptor)]
    [options (new oneof-options%)]))
 
 (define-simple-class enum-descriptor% object%
   ([name (error "enum name must be set")]
+   [file-descriptor (current-file-descriptor)]
    [values '() #:list]
    [options (new enum-options%)]))
 
 (define-simple-class enum-value% object%
   ([name (error "enum value name must be set")]
+   [file-descriptor (current-file-descriptor)]
    [number 0]
    [options (new enum-value-options%)]))
 
