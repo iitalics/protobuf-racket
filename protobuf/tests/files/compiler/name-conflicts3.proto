@@ -1,12 +1,6 @@
 syntax = 'proto3';
 
-message O {
-  message A {
-    message B {
-    }
-  }
-  message B {
-  }
-  message A {
-  }
+message A {
+  uint32 x = 1;
+  message x {}
 }
