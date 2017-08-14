@@ -162,6 +162,22 @@
          des))]
 
 
+    [(struct ast:field (loc name number label type opts))
+
+     (let ([field-des (new field-descriptor%
+                          [name name]
+                          [number number]
+                          [label label])])
+
+       (add-descriptor field-des
+                       (name-append (current-scope) name)
+                       loc)
+
+       ;; TODO: compile field options
+
+       field-des)]
+
+
     [(struct ast:oneof (loc name sub-fields)) '()]
 
     [_ (format "unimplemented AST ~a" ast)]))
