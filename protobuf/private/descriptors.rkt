@@ -37,6 +37,7 @@
 
 (define-simple-class descriptor% object%
   ([name (error "descriptor name must be set")]
+   [full-name name]
    [file-descriptor (current-file-descriptor)]
    [fields '() #:list]
    [oneofs '() #:list]
