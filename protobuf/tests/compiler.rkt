@@ -9,10 +9,9 @@
 
   (parameterize ([extra-proto-paths '("files/compiler")])
 
-    (define (resolve+parse+compile . paths)
-      (parameterize ([current-file-desc-pool (make-hash)]
-                     [current-names-in-use (make-hash)])
-        (map compile-root (parse+dependencies paths))))
+    (define (parse->descriptor . paths)
+      (with-clean-compile
+        (map ast->descriptor (parse+dependencies paths))))
 
     (define ((exn-matches pred pat) e)
       (and (pred e)
@@ -20,19 +19,20 @@
 
 
     ;; test name conflicts
-    (for ([i '(1 2 3 4 #|5 6 7|# 8)])
-      (check-exn (exn-matches exn:fail:compile? #px"already bound in ")
-                 (λ () (resolve+parse+compile
+    (for ([i '(1 2 3 4 5 6 7 8)])
+      (check-exn (exn-matches exn:fail:compile? #px"already bound in file \"files/compiler/name-conflicts")
+                 (λ () (parse->descriptor
                         (format "name-conflicts~a.proto" i)))
                  (format "name-conflict-~a" i)))
 
     ;; test enums
     (check-exn (exn-matches exn:fail:compile? #px"first enum field must be number 0")
-               (λ () (resolve+parse+compile "enums1.proto")))
+               (λ () (parse->descriptor "enums1.proto"))
+               "enums1")
 
     (check-not-exn
      (λ ()
-       (let* ([fd (first (resolve+parse+compile "enums2.proto"))]
+       (let* ([fd (first (parse->descriptor "enums2.proto"))]
               [E (first (send fd get-enum-types))]
               [F (second (send fd get-enum-types))]
               [E-vals (send E get-values)])
