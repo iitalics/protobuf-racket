@@ -128,12 +128,11 @@
 
        (parameterize ([current-file-descriptor fd])
 
-         (send fd set-message-types (map ast->descriptor messages))
-         (send fd set-enum-types (map ast->descriptor enums))
-
          ;; TODO: dependencies??
          ;; TODO: compile file options
 
+         (send fd set-message-types (map ast->descriptor messages))
+         (send fd set-enum-types (map ast->descriptor enums))
          fd))]
 
 
@@ -154,11 +153,10 @@
                         (map ast->descriptor maps)
                         (map ast->descriptor oneofs)))
 
-         (send des set-nested-types (map ast->descriptor messages))
-         (send des set-nested-enums (map ast->descriptor enums))
-
          ;; TODO: compile message options
 
+         (send des set-nested-types (map ast->descriptor messages))
+         (send des set-nested-enums (map ast->descriptor enums))
          des))]
 
 
@@ -169,15 +167,26 @@
                           [number number]
                           [label label])])
 
+       ;; TODO: compile field options
+
        (add-descriptor field-des
                        (name-append (current-scope) name)
                        loc)
 
-       ;; TODO: compile field options
-
        field-des)]
 
 
-    [(struct ast:oneof (loc name sub-fields)) '()]
+    [(struct ast:oneof (loc name sub-fields))
+     (let ([oneof-des (new oneof-descriptor% [name name])])
+
+       ;; TODO: oneof options
+
+       (cons oneof-des
+             (map (compose (λ (field-des)
+                             (send field-des set-parent-oneof oneof-des)
+                             field-des)
+                           ast->descriptor)
+                  sub-fields)))]
+
 
     [_ (format "unimplemented AST ~a" ast)]))
