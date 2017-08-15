@@ -18,7 +18,25 @@
          enum-options%
          enum-value-options%
 
-         current-file-descriptor)
+         current-file-descriptor
+         file-descriptor-pool)
+
+(define-syntax define-adder
+  (syntax-rules (=>)
+    [(_ (method arg ...) => variable (class%))
+     (define/public (method arg ...)
+       (let ([obj (new class% [arg arg] ...)])
+         (set! variable (append variable (list obj)))
+         obj))]))
+
+;; maps resolved paths to generated file descriptors
+;; (hash complete-path? => (is-a?/c file-descriptor%))
+(define file-descriptor-pool (make-parameter (make-hash)))
+
+;; this parameter determines the automatic 'file-descriptor'
+;; field in most of the following objects
+(define current-file-descriptor (make-parameter #f))
+
 
 ;; these classes are derived almost exactly from google/protobuf/descriptor.proto
 ;;   that .proto file is licensed under Copyright 2008 Google Inc.  All rights reserved.
@@ -27,44 +45,65 @@
 (define-simple-class file-descriptor% object%
   ([file-path (error "file path must be set")]
    [package ""]
-   [dependencies '() #:list]
-   [public-dependencies '() #:list]
+   [dependencies (make-hash)] ; hash complete-path? => bool? (is public?)
    [message-types '() #:list]
    [enum-types '() #:list]
-   [file-options (new file-options%)]))
+   [file-options (new file-options%)])
 
-(define current-file-descriptor (make-parameter #f))
+  (define/public (has-dependency? complete-path)
+    (hash-has-key? dependencies complete-path))
+  (define/public (has-public-dependency? complete-path)
+    (hash-ref dependencies complete-path #f))
+  (define/public (get-public-dependencies)
+    (for/list ([(path public?) (in-hash dependencies)]
+               #:when public?)
+      path))
+
+  (define-adder (add-message name) => message-types (descriptor%))
+  (define-adder (add-enum name) => enum-types (enum-descriptor%)))
+
 
 (define-simple-class descriptor% object%
   ([name (error "descriptor name must be set")]
-   [full-name name]
+   [full-name #f]
    [file-descriptor (current-file-descriptor)]
    [fields '() #:list]
    [oneofs '() #:list]
    [nested-types '() #:list]
    [nested-enums '() #:list]
    [reserved-indices '()]
-   [options (new message-options%)]))
+   [options (new message-options%)])
+
+  (define-adder (add-field name) => fields (field-descriptor%))
+  (define-adder (add-oneof name) => oneofs (oneof-descriptor%))
+  (define-adder (add-nested-type name) => nested-types (descriptor%))
+  (define-adder (add-nested-enum name) => nested-enums (enum-descriptor%)))
+
 
 (define-simple-class field-descriptor% object%
   ([name (error "field name must be set")]
    [file-descriptor (current-file-descriptor)]
-   [number (error "field number must be set")]
+   [number 0]
    [label 'optional]
    [type #f]
    [parent-oneof #f]
    [options (new field-options%)]))
+
 
 (define-simple-class oneof-descriptor% object%
   ([name (error "oneof name must be set")]
    [file-descriptor (current-file-descriptor)]
    [options (new oneof-options%)]))
 
+
 (define-simple-class enum-descriptor% object%
   ([name (error "enum name must be set")]
    [file-descriptor (current-file-descriptor)]
    [values '() #:list]
-   [options (new enum-options%)]))
+   [options (new enum-options%)])
+
+  (define-adder (add-value name) => values (enum-value%)))
+
 
 (define-simple-class enum-value% object%
   ([name (error "enum value name must be set")]
