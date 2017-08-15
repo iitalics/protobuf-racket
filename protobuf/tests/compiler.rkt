@@ -9,9 +9,9 @@
 
   (parameterize ([extra-proto-paths '("files/compiler")])
 
-    (define (parse->descriptor . paths)
+    (define (parse->descriptor path)
       (with-clean-compile
-        (map ast->descriptor (parse+dependencies paths))))
+        (compile-root (first (parse+dependencies (list path))))))
 
     (define ((exn-matches pred pat) e)
       (and (pred e)
