@@ -1,12 +1,14 @@
 #lang racket/base
 (require (for-syntax racket/base syntax/parse)
+         racket/match
          racket/contract)
 
 (provide (contract-out (struct ast ([loc srcloc?])))
          ast:options?
          ast:type?
          empty-options
-         ast-source)
+         ast-source
+         ast-name)
 
 
 (struct ast (loc) #:transparent)
@@ -100,3 +102,15 @@
 
 (define (ast-source f)
   (srcloc-source (ast-loc f)))
+
+(define (ast-name a)
+  (match a
+    [(ast:package-decl _ m) m]
+    [(ast:message _ m _ _ _ _ _ _ _) m]
+    [(ast:field _ m _ _ _ _) m]
+    [(ast:oneof _ m _) m]
+    [(ast:map-field _ m _ _ _ _) m]
+    [(ast:enum _ m _ _) m]
+    [(ast:enum-val _ m _ _) m]
+    [_
+     (error "ast does not have a name:\n" a)]))
