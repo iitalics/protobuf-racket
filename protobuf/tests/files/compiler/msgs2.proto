@@ -1,0 +1,10 @@
+syntax = 'proto3';
+
+message A {
+  uint32 a = 1;
+  oneof O {
+    uint32 b = 2;
+    uint32 c = 3;
+  }
+  uint32 d = 4;
+}
