@@ -212,6 +212,14 @@
         (send this-desc set-type type)
         (add-unresolved-field this-ast this-desc))]
 
+   [(ast:oneof (name fields))
+    #:scoped-name name
+    ;; TODO: compile oneof options
+    (for ([sub-field (in-list fields)])
+      (compile-ast sub-field
+                   (send (current-message) add-field
+                         (ast:field-name sub-field))))]
+
 
    [(ast:enum (name vals opts))
     #:scoped-name name
