@@ -216,9 +216,10 @@
     #:scoped-name name
     ;; TODO: compile oneof options
     (for ([sub-field (in-list fields)])
-      (compile-ast sub-field
-                   (send (current-message) add-field
-                         (ast:field-name sub-field))))]
+      (let ([sub-field-desc (send (current-message) add-field
+                                  (ast:field-name sub-field))])
+        (compile-ast sub-field sub-field-desc)
+        (send sub-field-desc set-parent-oneof this-desc)))]
 
 
    [(ast:enum (name vals opts))
