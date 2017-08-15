@@ -213,6 +213,20 @@
         (add-unresolved-field this-ast this-desc))]
 
 
+   [(ast:enum (name vals opts))
+    #:scoped-name name
+    #:sub-asts vals => add-value
+    ;; TODO: compile enum options
+    ]
+
+   [(ast:enum-val (name number opts))
+    #:scoped-name name
+    (send this-desc set-number number)
+    ;; TODO: compile enum value options
+    ]
+
+
+
    ))
 
 
