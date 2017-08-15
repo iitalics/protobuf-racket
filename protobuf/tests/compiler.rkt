@@ -65,15 +65,12 @@
      (λ ()
        (let* ([fd (parse->descriptor "enums2.proto")]
               [E (first (send fd get-enum-types))]
-              [F (second (send fd get-enum-types))]
               [E-vals (send E get-values)])
          (check-equal? (send (first E-vals) get-name) "No")
          (check-equal? (send (first E-vals) get-number) 0)
          (check-equal? (send (second E-vals) get-name) "Yes")
          (check-equal? (send (second E-vals) get-number) 1)
          (check-equal? (send (third E-vals) get-name) "Maybe")
-         (check-equal? (send (third E-vals) get-number) 2)
-
-         (check-true (send (send F get-options) is-alias-allowed?)))))
+         (check-equal? (send (third E-vals) get-number) 2))))
 
     ))
