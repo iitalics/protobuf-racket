@@ -29,7 +29,7 @@
     ;; test messages & basic fields
     (check-not-exn
      (λ ()
-       (let* ([fd (first (parse->descriptor "msgs1.proto"))]
+       (let* ([fd (parse->descriptor "msgs1.proto")]
               [A (first (send fd get-message-types))]
               [A-fields (send A get-fields)]
               [B (first (send A get-nested-types))]
@@ -45,7 +45,7 @@
     ;; test oneofs
     (check-not-exn
      (λ ()
-       (let* ([fd (first (parse->descriptor "msgs2.proto"))]
+       (let* ([fd (parse->descriptor "msgs2.proto")]
               [A (first (send fd get-message-types))]
               [O (first (send A get-oneofs))]
               [fields (send A get-fields)])
@@ -63,7 +63,7 @@
 
     (check-not-exn
      (λ ()
-       (let* ([fd (first (parse->descriptor "enums2.proto"))]
+       (let* ([fd (parse->descriptor "enums2.proto")]
               [E (first (send fd get-enum-types))]
               [F (second (send fd get-enum-types))]
               [E-vals (send E get-values)])
