@@ -196,9 +196,10 @@
     #:param [current-message this-desc]
     #:param [current-scope (name-append (current-scope) name)]
     #:sub-asts fields => add-field
+    #:sub-asts oneofs => add-oneof
+    #:sub-asts map-fields => add-field
     #:sub-asts messages => add-nested-type
     #:sub-asts enums => add-nested-enum
-    #:sub-asts oneofs => add-oneof
     ;; TODO: compile message options
     (send this-desc set-full-name (current-scope))]
 
@@ -221,6 +222,39 @@
                                   (ast:field-name sub-field))])
         (compile-ast sub-field sub-field-desc)
         (send sub-field-desc set-parent-oneof this-desc)))]
+
+
+   [(ast:map-field (name number key-type val-type opts))
+    #:scoped-name name
+
+    ;; generate:
+    ;;   message MapEntryField { <key-type> key = 1; <val-type> value = 2; }
+    (define entry-key-field
+      (new field-descriptor%
+           [name "key"]
+           [number 1]
+           [type key-type]))
+    (define entry-value-field
+      (new field-descriptor%
+           [name "value"]
+           [number 2]
+           [type val-type]))
+
+    (define entry-type
+      (new descriptor%
+           [name "MapFieldEntry"]
+           [full-name (name-append (current-scope) "(hidden).MapFieldEntry")]
+           [fields (list entry-key-field
+                         entry-value-field)]))
+    (send (send entry-type get-options) set-map-entry #t)
+
+    ;; key is always a known type, but value could be unresolved
+    (unless (symbol? val-type)
+      (add-unresolved-field this-ast entry-value-field))
+
+    (send this-desc set-number number)
+    (send this-desc set-label 'repeated)
+    (send this-desc set-type entry-type)]
 
 
    [(ast:enum (name vals opts))
