@@ -61,9 +61,13 @@
                (λ () (parse->descriptor "enums1.proto"))
                "enums1")
 
+    (check-exn (exn-matches exn:fail:compile? #px"enum must contain at least one field")
+               (λ () (parse->descriptor "enums2.proto"))
+               "enums1")
+
     (check-not-exn
      (λ ()
-       (let* ([fd (parse->descriptor "enums2.proto")]
+       (let* ([fd (parse->descriptor "enums3.proto")]
               [E (first (send fd get-enum-types))]
               [E-vals (send E get-values)])
          (check-equal? (send (first E-vals) get-name) "No")

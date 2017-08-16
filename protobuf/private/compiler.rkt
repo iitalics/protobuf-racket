@@ -227,6 +227,10 @@
     #:scoped-name name
     #:sub-asts vals => add-value
     ;; TODO: compile enum options
+    (match vals
+      [(cons (ast:enum-val _ _ 0 _) _) 'ok]
+      ['() (raise-compile-error this-loc "enum must contain at least one field")]
+      [_   (raise-compile-error this-loc "first enum field must be number 0")])
     ]
 
    [(ast:enum-val (name number opts))
