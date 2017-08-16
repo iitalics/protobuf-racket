@@ -56,6 +56,23 @@
          (check-equal? (send (fourth fields) get-parent-oneof) O)
          (check-equal? (send (fourth fields) get-label) 'optional))))
 
+    ;; test map fields
+    (check-not-exn
+     (λ ()
+       (let* ([fd (parse->descriptor "msgs3.proto")]
+              [A (first (send fd get-message-types))]
+              [tbl (first (send A get-fields))]
+              [Entry (send tbl get-type)]
+              [Entry.key (first (send Entry get-fields))]
+              [Entry.value (second (send Entry get-fields))])
+         (check-equal? (send tbl get-number) 4)
+         (check-equal? (send tbl get-label) 'repeated)
+         (check-true (send (send Entry get-options) is-map-entry?))
+         (check-equal? (send Entry.key get-number) 1)
+         (check-equal? (send Entry.key get-type) 'int32)
+         (check-equal? (send Entry.value get-number) 2)
+         (check-equal? (send Entry.value get-type) 'string))))
+
     ;; test enums
     (check-exn (exn-matches exn:fail:compile? #px"first enum field must be number 0")
                (λ () (parse->descriptor "enums1.proto"))

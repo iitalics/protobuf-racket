@@ -1,0 +1,5 @@
+syntax = 'proto3';
+
+message A {
+  map<int32, string> tbl = 4;
+}
