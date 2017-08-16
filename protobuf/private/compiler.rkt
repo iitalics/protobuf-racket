@@ -208,9 +208,10 @@
     ;; TODO: compile field options
     (send this-desc set-number number)
     (send this-desc set-label label)
-    (if (symbol? type)
-        (send this-desc set-type type)
-        (add-unresolved-field this-ast this-desc))]
+    (send this-desc set-type type)
+    (unless (symbol? type)
+      (add-unresolved-field this-ast this-desc))]
+
 
    [(ast:oneof (name fields))
     #:scoped-name name
