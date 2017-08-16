@@ -1,5 +1,6 @@
 #lang racket/base
 (require racket/class
+         racket/set
          racket/string
          "oop-utils.rkt")
 
@@ -71,13 +72,27 @@
    [oneofs '() #:list]
    [nested-types '() #:list]
    [nested-enums '() #:list]
-   [reserved-indices '()]
+   [reserved-names (mutable-set)]
    [options (new message-options%)])
 
   (define-adder (add-field name) => fields (field-descriptor%))
   (define-adder (add-oneof name) => oneofs (oneof-descriptor%))
   (define-adder (add-nested-type name) => nested-types (descriptor%))
-  (define-adder (add-nested-enum name) => nested-enums (enum-descriptor%)))
+  (define-adder (add-nested-enum name) => nested-enums (enum-descriptor%))
+
+   ;; list of predicates (integer? -> boolean?)
+   ;; that return #t if the index is reserved
+  (init-field [reserved-preds '()])
+  (define/public (add-reserved-index-predicate p)
+    (set! reserved-preds (cons p reserved-preds)))
+  (define/public (index-reserved? i)
+    (ormap (λ (f) (f i)) reserved-preds))
+
+  ;; reserved-names is just a mutable set of strings (name of reserved field)
+  (define/public (add-reserved-name x)
+    (set-add! reserved-names x))
+  (define/public (name-reserved? x)
+    (set-member? reserved-names x)))
 
 
 (define-simple-class field-descriptor% object%
