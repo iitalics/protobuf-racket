@@ -167,7 +167,7 @@
 (define compile-ast
   (%-ast-compiler
 
-   [(ast:message (name fields oneofs map-fields messages enums res opts))
+   [(ast:message (name fields oneofs map-fields messages enums rsvs opts))
     (send this-desc set-full-name
           (%-scoped-name name))
     (parameterize ([current-message this-desc]
@@ -178,6 +178,29 @@
       (%-sub-asts messages   => add-nested-type)
       (%-sub-asts enums      => add-nested-enum)
       ;; TODO: compile message options
+
+      ;; reserved ranges, names
+      (for ([rsv (in-list rsvs)])
+        (cond
+          [(string? rsv) (send this-desc add-reserved-name rsv)]
+          [(ast:range? rsv)
+           (send this-desc add-reserved-index-predicate
+                 (if (eq? (ast:range-max rsv) 'max)
+                     (>=/c (ast:range-min rsv))
+                     (between/c (ast:range-min rsv)
+                                (ast:range-max rsv))))]))
+
+      ;; reserved indices as a bit set
+      (let ([bitset (for/sum ([i (in-list rsvs)]
+                              #:when (exact-integer? i))
+                      (arithmetic-shift 1 i))])
+
+        (unless (zero? bitset)
+          (send this-desc add-reserved-index-predicate
+                (λ (j)
+                  (positive? (bitwise-and bitset
+                                          (arithmetic-shift 1 j)))))))
+
       )]
 
 

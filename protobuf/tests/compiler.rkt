@@ -82,8 +82,8 @@
        (let* ([fd (parse->descriptor "msgs4.proto")]
               [A (first (send fd get-message-types))])
          (check-true (send A index-reserved? 1))
-         (check-true (andmap (λ (i) (send A index-reserved? i)) '(3 4 5 6 7 8 9 10 11)))
-         (check-false (ormap (λ (i) (send A index-reserved? i)) '(11 12 13 14 15 16 17 18 19)))
+         (check-true (andmap (λ (i) (send A index-reserved? i)) '(3 4 5 6 7 8 9 10 15)))
+         (check-false (ormap (λ (i) (send A index-reserved? i)) '(11 12 13 14 16 17 18 19)))
          (check-true (andmap (λ (i) (send A index-reserved? i)) '(20 21 22 999 99999)))
          (check-false (send A name-reserved? "x"))
          (check-true (send A name-reserved? "y"))
