@@ -34,6 +34,8 @@
               [A-fields (send A get-fields)]
               [B (first (send A get-nested-types))]
               [B-fields (send B get-fields)])
+         (check-equal? (send A get-full-name) "foo.bar.A")
+         (check-equal? (send B get-full-name) "foo.bar.A.B")
          (check-equal? (send (first A-fields) get-name) "x")
          (check-equal? (send (first A-fields) get-label) 'optional)
          (check-equal? (send (first A-fields) get-number) 1)
@@ -49,6 +51,7 @@
               [A (first (send fd get-message-types))]
               [O (first (send A get-oneofs))]
               [fields (send A get-fields)])
+         (check-equal? (send A get-full-name) "A")
          (check-equal? (send (first fields) get-parent-oneof) #f)
          (check-equal? (send (second fields) get-parent-oneof) #f)
          (check-equal? (send (third fields) get-parent-oneof) O)

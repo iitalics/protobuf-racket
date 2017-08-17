@@ -1,4 +1,5 @@
 syntax = 'proto3';
+package foo.bar;
 
 message A {
   uint32 x = 1;

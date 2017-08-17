@@ -123,11 +123,13 @@
          (displayln this-ast) (error "unimplement AST")]))))
 
 (define-syntax-rule (%-scoped-name e)
-  (let ([name e])
+  (let* ([name e]
+         [full-name (name-append (current-scope) name)])
     (send this-desc set-name name)
     (add-descriptor this-desc
-                    (name-append (current-scope) name)
-                    this-loc)))
+                    full-name
+                    this-loc)
+    full-name))
 
 (define-syntax %-sub-asts
   (syntax-rules (=>)
@@ -166,7 +168,8 @@
   (%-ast-compiler
 
    [(ast:message (name fields oneofs map-fields messages enums res opts))
-    (%-scoped-name name)
+    (send this-desc set-full-name
+          (%-scoped-name name))
     (parameterize ([current-message this-desc]
                    [current-scope (name-append (current-scope) name)])
       (%-sub-asts fields     => add-field)
@@ -175,7 +178,7 @@
       (%-sub-asts messages   => add-nested-type)
       (%-sub-asts enums      => add-nested-enum)
       ;; TODO: compile message options
-      (send this-desc set-full-name (current-scope)))]
+      )]
 
 
    [(ast:field (name number label type opts))
