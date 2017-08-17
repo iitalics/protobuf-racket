@@ -1,0 +1,7 @@
+syntax = 'proto3';
+
+message A {}
+
+message B {
+  map<uint32, A> stuff = 1;
+}

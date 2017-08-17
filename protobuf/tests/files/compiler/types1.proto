@@ -1,0 +1,19 @@
+syntax = 'proto3';
+
+message A {
+  bool x1 = 1;
+  int32 x2 = 2;
+  uint32 x3 = 3;
+  sint32 x4 = 4;
+  fixed32 x5 = 5;
+  sfixed32 x6 = 6;
+  int64 x7 = 7;
+  uint64 x8 = 8;
+  sint64 x9 = 9;
+  fixed64 x10 = 10;
+  sfixed64 x11 = 11;
+  float x12 = 12;
+  double x13 = 13;
+  string x14 = 14;
+  bytes x15 = 15;
+}

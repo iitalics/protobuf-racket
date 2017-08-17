@@ -1,0 +1,10 @@
+syntax = 'proto3';
+package test.compiler.types4;
+
+message A {
+  enum C { First = 0; }
+}
+
+message B {
+  C x = 1;
+}

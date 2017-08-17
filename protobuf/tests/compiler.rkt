@@ -3,8 +3,8 @@
 (module+ test
   (require "../private/dependencies.rkt"
            "../private/compiler.rkt"
-           racket/list
-           racket/class
+           "../private/ast.rkt"
+           racket
            rackunit)
 
   (parameterize ([extra-proto-paths '("files/compiler")])
@@ -12,6 +12,10 @@
     (define (parse->descriptor path)
       (with-clean-compile
         (compile-root (first (parse+dependencies (list path))))))
+
+    (define (parse->descriptors paths)
+      (with-clean-compile
+        (map compile-root (parse+dependencies paths))))
 
     (define ((exn-matches pred pat) e)
       (and (pred e)
@@ -109,5 +113,75 @@
          (check-equal? (send (second E-vals) get-number) 1)
          (check-equal? (send (third E-vals) get-name) "Maybe")
          (check-equal? (send (third E-vals) get-number) 2))))
+
+
+    ;; test types
+    (define (type-of f) (send f get-type))
+
+    (check-not-exn
+     (λ ()
+       (let* ([fd (parse->descriptor "types1.proto")]
+              [A (first (send fd get-message-types))])
+         (check-equal? (map type-of (send A get-fields))
+                       '(bool int32 uint32 sint32 fixed32
+                         sfixed32 int64 uint64 sint64 fixed64
+                         sfixed64 float double string bytes)))))
+
+    (check-not-exn
+     (λ ()
+       (let* ([fd (parse->descriptor "types2.proto")]
+              [A (first (send fd get-message-types))]
+              [B (second (send fd get-message-types))]
+              [C (first (send B get-nested-types))])
+         (check-equal? (type-of (first (send A get-fields))) B)
+         (check-equal? (type-of (first (send B get-fields))) A)
+         (check-equal? (type-of (first (send C get-fields))) A))))
+
+    (check-not-exn
+     (λ ()
+       (let* ([fd (parse->descriptor "types3.proto")]
+              [A (first (send fd get-message-types))]
+              [A.E (first (send A get-nested-enums))]
+              [B (second (send fd get-message-types))]
+              [B.E (first (send B get-nested-enums))])
+         (check-equal? (type-of (first  (send A get-fields))) A.E)
+         (check-equal? (type-of (second (send A get-fields))) B.E)
+         (check-equal? (type-of (first  (send B get-fields))) B.E)
+         (check-equal? (type-of (second (send B get-fields))) A.E)
+         (check-equal? (type-of (third  (send B get-fields))) B.E))))
+
+    (check-exn (exn-matches exn:fail:compile? #px"cannot resolve type C in scope test.compiler.types4.B")
+               (λ () (parse->descriptor "types4.proto")))
+
+    (check-not-exn
+     (λ ()
+       (let* ([fd-list (parse->descriptors '("types5.proto"))]
+              [inside.fd (first fd-list)]
+              [fd (second fd-list)]
+              [inside.SW (first (send inside.fd get-message-types))]
+              [SW (first (send fd get-message-types))]
+              [Store (second (send fd get-message-types))]
+              [Cust (third (send fd get-message-types))])
+         ; Sandwich.description
+         (check-equal? (type-of (second (send SW get-fields))) inside.SW)
+         ; Store.offers
+         (check-equal? (type-of (first (send Store get-fields))) SW)
+         ; Customer.last_order
+         (check-equal? (type-of (first (send Cust get-fields))) SW)
+         ; Customer.favorite
+         (check-equal? (type-of (second (send Cust get-fields))) inside.SW))))
+
+    (check-not-exn
+     (λ ()
+       (let* ([fd (parse->descriptor "types6.proto")]
+              [A (first (send fd get-message-types))]
+              [B (second (send fd get-message-types))]
+              [stuff (first (send B get-fields))]
+              [Entry (send stuff get-type)]
+              [key (first (send Entry get-fields))]
+              [value (second (send Entry get-fields))])
+         (check-true (send (send Entry get-options) is-map-entry?))
+         (check-equal? (type-of key) 'uint32)
+         (check-equal? (type-of value) A))))
 
     ))
