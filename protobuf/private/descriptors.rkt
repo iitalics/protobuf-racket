@@ -60,12 +60,12 @@
                #:when public?)
       path))
 
-  (define-adder (add-message name) => message-types (descriptor%))
-  (define-adder (add-enum name) => enum-types (enum-descriptor%)))
+  (define-adder (add-message) => message-types (descriptor%))
+  (define-adder (add-enum) => enum-types (enum-descriptor%)))
 
 
 (define-simple-class descriptor% object%
-  ([name (error "descriptor name must be set")]
+  ([name ""]
    [full-name #f]
    [file-descriptor (current-file-descriptor)]
    [fields '() #:list]
@@ -75,10 +75,10 @@
    [reserved-names (mutable-set)]
    [options (new message-options%)])
 
-  (define-adder (add-field name) => fields (field-descriptor%))
-  (define-adder (add-oneof name) => oneofs (oneof-descriptor%))
-  (define-adder (add-nested-type name) => nested-types (descriptor%))
-  (define-adder (add-nested-enum name) => nested-enums (enum-descriptor%))
+  (define-adder (add-field) => fields (field-descriptor%))
+  (define-adder (add-oneof) => oneofs (oneof-descriptor%))
+  (define-adder (add-nested-type) => nested-types (descriptor%))
+  (define-adder (add-nested-enum) => nested-enums (enum-descriptor%))
 
    ;; list of predicates (integer? -> boolean?)
    ;; that return #t if the index is reserved
@@ -96,7 +96,7 @@
 
 
 (define-simple-class field-descriptor% object%
-  ([name (error "field name must be set")]
+  ([name ""]
    [file-descriptor (current-file-descriptor)]
    [number 0]
    [label 'optional]
@@ -106,22 +106,22 @@
 
 
 (define-simple-class oneof-descriptor% object%
-  ([name (error "oneof name must be set")]
+  ([name ""]
    [file-descriptor (current-file-descriptor)]
    [options (new oneof-options%)]))
 
 
 (define-simple-class enum-descriptor% object%
-  ([name (error "enum name must be set")]
+  ([name ""]
    [file-descriptor (current-file-descriptor)]
    [values '() #:list]
    [options (new enum-options%)])
 
-  (define-adder (add-value name) => values (enum-value%)))
+  (define-adder (add-value) => values (enum-value%)))
 
 
 (define-simple-class enum-value% object%
-  ([name (error "enum value name must be set")]
+  ([name ""]
    [file-descriptor (current-file-descriptor)]
    [number 0]
    [options (new enum-value-options%)]))

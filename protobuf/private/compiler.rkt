@@ -84,14 +84,14 @@
 
 ;; below is a macro for generating compile-ast function, so that it is
 ;; less tedious
-;; for instance #:sub-asts a => m
+;; for instance (%-sub-asts a => m)
 ;; automates a loop that iterates over 'a' and uses the method 'm' on
 ;; the current descriptor, to get a target for the ast
 ;; erm, as in:
-;;   #:sub-asts fields => add-field
+;;   (%-sub-asts fields => add-field)
 ;; becomes
 ;;   (for ([field-ast (in-list fields)])
-;;     (compile-ast field-ast (send this-descriptor add-field (ast-name field-ast))))
+;;     (compile-ast field-ast (send this-descriptor add-field)))
 
 ;; the current ast node being parsed
 (define-syntax-parameter this-ast
@@ -106,61 +106,35 @@
 (define-syntax-parameter this-sub-ast
   (λ (stx) (error "use of this-ast outside of ast compiler")))
 
-(begin-for-syntax
-  (require racket/base
-           racket/syntax
-           syntax/parse)
 
-  (define-splicing-syntax-class astc-kw-clause
-    #:attributes ([params 1] [pre-stmts 1] [stmts 1])
-    #:datum-literals (=>)
+(define-syntax-rule (%-ast-compiler [(struct-id (field-pat ...))
+                                       expr ...]
+                                      ...)
+  (λ (the-ast the-desc)
+    (syntax-parameterize ([this-ast (make-rename-transformer #'the-ast)]
+                          [this-desc (make-rename-transformer #'the-desc)])
+      (match the-ast
+        [(struct struct-id (loc field-pat ...))
+         (syntax-parameterize ([this-loc (make-rename-transformer #'loc)])
+           expr ...)]
+        ...
 
-    (pattern (~seq #:scoped-name e)
-             #:with [pre-stmts ...]
-             #'[(add-descriptor this-desc
-                                (name-append (current-scope) e)
-                                loc)]
-             #:with [params ...] #'[]
-             #:with [stmts ...] #'[])
+        [_
+         (displayln this-ast) (error "unimplement AST")]))))
 
-    (pattern (~seq #:param [P v])
-             #:with [params ...] #'[[P v]]
-             #:with [stmts ...] #'[]
-             #:with [pre-stmts ...] #'[])
+(define-syntax-rule (%-scoped-name e)
+  (let ([name e])
+    (send this-desc set-name name)
+    (add-descriptor this-desc
+                    (name-append (current-scope) name)
+                    this-loc)))
 
-    (pattern (~seq #:sub-asts e => method:id)
-             #:with [stmts ...] #'[(for ([the-sub-ast (in-list e)])
-                                     (compile-ast the-sub-ast
-                                                  (send this-desc method (ast-name the-sub-ast))))]
-             #:with [pre-stmts ...] #'[]
-             #:with [params ...] #'[])
+(define-syntax %-sub-asts
+  (syntax-rules (=>)
+    [(_ e => method)
+     (for ([the-sub-ast (in-list e)])
+       (compile-ast the-sub-ast (send this-desc method)))]))
 
-    (pattern (~seq #:sub-asts e => [method ...])
-             #:with [stmts ...]
-             #'[(for ([the-sub-ast (in-list e)])
-                  (syntax-parameterize ([this-sub-ast (make-rename-transformer #'the-sub-ast)])
-                    (compile-ast the-sub-ast (send this-desc method ...))))]
-             #:with [pre-stmts ...] #'[]
-             #:with [params ...] #'[])))
-
-
-(define-syntax gen-ast-compiler
-  (syntax-parser
-    [(_ [(struct-id:id (field-pat ...))
-         kwc:astc-kw-clause ...
-         other:expr ...] ...)
-     #'(λ (the-ast the-desc)
-         (syntax-parameterize ([this-ast (make-rename-transformer #'the-ast)]
-                               [this-desc (make-rename-transformer #'the-desc)])
-           (match the-ast
-             [(struct struct-id (loc field-pat ...))
-              (syntax-parameterize ([this-loc (make-rename-transformer #'loc)])
-                kwc.pre-stmts ... ...
-                (parameterize (kwc.params ... ...)
-                  kwc.stmts ... ...
-                  other ...))]
-             ...
-             [_ (displayln this-ast) (error "unimplement AST")])))]))
 
 
 
@@ -189,23 +163,23 @@
 ;;
 ;; compile-ast : ast? object% -> void
 (define compile-ast
-  (gen-ast-compiler
+  (%-ast-compiler
 
    [(ast:message (name fields oneofs map-fields messages enums res opts))
-    #:scoped-name name
-    #:param [current-message this-desc]
-    #:param [current-scope (name-append (current-scope) name)]
-    #:sub-asts fields => add-field
-    #:sub-asts oneofs => add-oneof
-    #:sub-asts map-fields => add-field
-    #:sub-asts messages => add-nested-type
-    #:sub-asts enums => add-nested-enum
-    ;; TODO: compile message options
-    (send this-desc set-full-name (current-scope))]
+    (%-scoped-name name)
+    (parameterize ([current-message this-desc]
+                   [current-scope (name-append (current-scope) name)])
+      (%-sub-asts fields     => add-field)
+      (%-sub-asts oneofs     => add-oneof)
+      (%-sub-asts map-fields => add-field)
+      (%-sub-asts messages   => add-nested-type)
+      (%-sub-asts enums      => add-nested-enum)
+      ;; TODO: compile message options
+      (send this-desc set-full-name (current-scope)))]
 
 
    [(ast:field (name number label type opts))
-    #:scoped-name name
+    (%-scoped-name name)
     ;; TODO: compile field options
     (send this-desc set-number number)
     (send this-desc set-label label)
@@ -215,17 +189,16 @@
 
 
    [(ast:oneof (name fields))
-    #:scoped-name name
+    (%-scoped-name name)
     ;; TODO: compile oneof options
     (for ([sub-field (in-list fields)])
-      (let ([sub-field-desc (send (current-message) add-field
-                                  (ast:field-name sub-field))])
+      (let ([sub-field-desc (send (current-message) add-field)])
         (compile-ast sub-field sub-field-desc)
         (send sub-field-desc set-parent-oneof this-desc)))]
 
 
    [(ast:map-field (name number key-type val-type opts))
-    #:scoped-name name
+    (%-scoped-name name)
 
     ;; generate:
     ;;   message MapEntryField { <key-type> key = 1; <val-type> value = 2; }
@@ -258,8 +231,8 @@
 
 
    [(ast:enum (name vals opts))
-    #:scoped-name name
-    #:sub-asts vals => add-value
+    (%-scoped-name name)
+    (%-sub-asts vals => add-value)
     ;; TODO: compile enum options
     (match vals
       [(cons (ast:enum-val _ _ 0 _) _) 'ok]
@@ -268,7 +241,7 @@
     ]
 
    [(ast:enum-val (name number opts))
-    #:scoped-name name
+    (%-scoped-name name)
     (send this-desc set-number number)
     ;; TODO: compile enum value options
     ]
@@ -314,14 +287,10 @@
          ;; TODO: compile file options
 
          (for ([msg-ast (in-list messages)])
-           (compile-ast msg-ast
-                        (send file-desc add-message
-                              (ast:message-name msg-ast))))
+           (compile-ast msg-ast (send file-desc add-message)))
 
          (for ([enum-ast (in-list enums)])
-           (compile-ast enum-ast
-                        (send file-desc add-enum
-                              (ast:enum-name enum-ast))))
+           (compile-ast enum-ast (send file-desc add-enum)))
 
          (current-unresolved)))
 
