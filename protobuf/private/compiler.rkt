@@ -151,9 +151,9 @@
 (define current-unresolved
   (make-parameter '()))
 
-(struct unresolved-field-type (ast desc scope))
-(define (add-unresolved-field ast desc)
-  (let ([ur (unresolved-field-type ast
+(struct unresolved-field-type (loc desc scope))
+(define (add-unresolved-field loc desc)
+  (let ([ur (unresolved-field-type loc
                                    desc
                                    (current-scope))])
     (current-unresolved
@@ -176,7 +176,7 @@
 ;; instance
 (define (resolve ur)
   (match ur
-    [(struct unresolved-field-type (ast desc scope))
+    [(struct unresolved-field-type (loc desc scope))
      (let* ([short-name (send desc get-type)]
             [type (resolve-something scope short-name)])
        (cond
@@ -190,7 +190,7 @@
                                short-name)]
 
          [else
-          (raise-compile-error (ast-loc ast)
+          (raise-compile-error loc
                                "cannot resolve type ~a in scope ~a"
                                short-name
                                scope)]))]))
@@ -207,8 +207,8 @@
   (%-ast-compiler
 
    [(ast:message (name fields oneofs map-fields messages enums rsvs opts))
-    (send this-desc set-full-name
-          (%-scoped-name name))
+    (send this-desc set-full-name (%-scoped-name name))
+
     (parameterize ([current-message this-desc]
                    [current-scope (name-append (current-scope) name)])
       (%-sub-asts fields     => add-field)
@@ -250,7 +250,7 @@
     (send this-desc set-label label)
     (send this-desc set-type type)
     (unless (symbol? type)
-      (add-unresolved-field this-ast this-desc))]
+      (add-unresolved-field this-loc this-desc))]
 
 
    [(ast:oneof (name fields))
@@ -264,35 +264,9 @@
 
    [(ast:map-field (name number key-type val-type opts))
     (%-scoped-name name)
-
-    ;; generate:
-    ;;   message MapEntryField { <key-type> key = 1; <val-type> value = 2; }
-    (define entry-key-field
-      (new field-descriptor%
-           [name "key"]
-           [number 1]
-           [type key-type]))
-    (define entry-value-field
-      (new field-descriptor%
-           [name "value"]
-           [number 2]
-           [type val-type]))
-
-    (define entry-type
-      (new descriptor%
-           [name "MapFieldEntry"]
-           [full-name (name-append (current-scope) "(hidden).MapFieldEntry")]
-           [fields (list entry-key-field
-                         entry-value-field)]))
-    (send (send entry-type get-options) set-map-entry #t)
-
-    ;; key is always a known type, but value could be unresolved
-    (unless (symbol? val-type)
-      (add-unresolved-field this-ast entry-value-field))
-
     (send this-desc set-number number)
     (send this-desc set-label 'repeated)
-    (send this-desc set-type entry-type)]
+    (send this-desc set-type (make-map-entry-type this-loc key-type val-type))]
 
 
    [(ast:enum (name vals opts))
@@ -362,6 +336,35 @@
      (for-each resolve unresolved)
 
      file-desc]))
+
+
+(define (make-map-entry-type loc key-type value-type)
+
+  (define entry-key-field
+    (new field-descriptor%
+         [name "key"]
+         [number 1]
+         [type key-type]))
+
+  (define entry-value-field
+    (new field-descriptor%
+         [name "value"]
+         [number 2]
+         [type value-type]))
+
+  (define entry-type
+    (new descriptor%
+         [name "MapFieldEntry"]
+         [full-name (name-append (current-scope) "(hidden).MapFieldEntry")]
+         [fields (list entry-key-field
+                       entry-value-field)]))
+  (send (send entry-type get-options) set-map-entry #t)
+
+  ;; key is always a known type, but value could be unresolved!
+  (unless (symbol? value-type)
+    (add-unresolved-field loc entry-value-field))
+
+  entry-type)
 
 
 
