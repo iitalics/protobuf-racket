@@ -54,7 +54,7 @@
 ;;   google.protobuf.Field         =>  <descriptor% 'Field'>
 ;;   google.protobuf.Field.Type    =>  <enum-descriptor% 'Type'>
 ;;   google.protobuf.Field.UINT32  =>  <enum-value% 'UINT32'>
-;;   google.protobuf.Field.type    =>  <field-descriptor% 'Type'>
+;;   google.protobuf.Field.type    =>  <field-descriptor% 'type'>
 (define all-descriptors (make-parameter (make-hash)))
 
 ;; check that the descriptor (any kind) is not already used.
@@ -153,10 +153,49 @@
 
 (struct unresolved-field-type (ast desc scope))
 (define (add-unresolved-field ast desc)
-  (current-unresolved (cons (unresolved-field-type ast
-                                                   desc
-                                                   (current-scope))
-                            (current-unresolved))))
+  (let ([ur (unresolved-field-type ast
+                                   desc
+                                   (current-scope))])
+    (current-unresolved
+     (cons ur (current-unresolved)))))
+
+;; find any descriptor from the given scope using the given short name
+;; may return anything with a full name, including fields and other non-types!
+;; e.g.
+;;   (resolve-something "google.protobuf" "protobuf.Any") => {google.protobuf.Any}
+(define (resolve-something scope short-name)
+  (or (for/or ([ss (in-list (subscopes scope))])
+        (hash-ref (all-descriptors)
+                  (name-append ss short-name)
+                  #f))
+      (hash-ref (all-descriptors)
+                short-name
+                #f)))
+
+;; resolve the unresolved field described by the given unresolved-field-type
+;; instance
+(define (resolve ur)
+  (match ur
+    [(struct unresolved-field-type (ast desc scope))
+     (let* ([short-name (send desc get-type)]
+            [type (resolve-something scope short-name)])
+       (cond
+         [(or (is-a? type descriptor%)
+              (is-a? type enum-descriptor%))
+          (send desc set-type type)]
+
+         [type ; (is not #f)
+          (raise-compile-error (ast-loc ast)
+                               "~v is not a type"
+                               short-name)]
+
+         [else
+          (raise-compile-error (ast-loc ast)
+                               "cannot resolve type ~a in scope ~a"
+                               short-name
+                               scope)]))]))
+
+
 
 
 ;; compile an ast into the given descriptor.
@@ -320,7 +359,7 @@
 
          (current-unresolved)))
 
-     ;; TODO: resolve types
+     (for-each resolve unresolved)
 
      file-desc]))
 
