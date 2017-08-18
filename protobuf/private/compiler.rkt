@@ -94,39 +94,43 @@
 ;;   (for ([field-ast (in-list fields)])
 ;;     (compile-ast field-ast (send this-descriptor add-field)))
 
-;; the descriptor being parsed into
-(define-syntax-parameter this-desc
-  (λ (stx) (error "use of this-desc outside of ast compiler")))
 ;; the current ast node being parsed
 (define-syntax-parameter this-ast
   (λ (stx) (error "use of this-ast outside of ast compiler")))
 ;; the loc of that node
 (define-syntax this-loc
   (make-variable-like-transformer #'(ast-loc this-ast)))
+;; the *-descriptor% being parsed into
+(define-syntax-parameter this-desc
+  (λ (stx) (error "use of this-desc outside of ast compiler")))
 
 
-(define-syntax-rule (%-ast-compiler [(struct-id (field-pat ...))
-                                       expr ...]
-                                      ...)
-  (λ (the-ast the-desc)
-    (syntax-parameterize ([this-ast (make-rename-transformer #'the-ast)]
-                          [this-desc (make-rename-transformer #'the-desc)])
-      (match the-ast
-        [(struct struct-id (loc field-pat ...))
+(define-syntax %-ast-compiler
+  (syntax-rules ()
+    [(_ [(struct-id (field-pat ...))
          expr ...]
-        ...
+        ...)
+     (λ (the-ast the-desc)
+       (syntax-parameterize ([this-ast (make-rename-transformer #'the-ast)]
+                             [this-desc (make-rename-transformer #'the-desc)])
+         (match the-ast
+           [(struct struct-id (_ field-pat ...))
+            expr ...]
+           ...
 
-        [_
-         (displayln this-ast) (error "unimplement AST")]))))
+           [_
+            (displayln this-ast) (error "unimplement AST")])))]))
 
-(define-syntax-rule (%-scoped-name e)
-  (let* ([name e]
-         [full-name (name-append (current-scope) name)])
-    (send this-desc set-name name)
-    (add-descriptor this-desc
-                    full-name
-                    this-loc)
-    full-name))
+(define-syntax %-scoped-name
+  (syntax-rules ()
+    [(_ e)
+     (let* ([name e]
+            [full-name (name-append (current-scope) name)])
+       (send this-desc set-name name)
+       (add-descriptor this-desc
+                       full-name
+                       this-loc)
+       full-name)]))
 
 (define-syntax %-sub-asts
   (syntax-rules (=>)
