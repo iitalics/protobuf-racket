@@ -130,7 +130,7 @@
 
 
 (define-simple-class options% object%
-  ([is-deprecated? #f]
+  ([deprecated? #f]
    [uninterpreted '() #:list]))
 
 (define-simple-class file-options% options%
@@ -142,7 +142,7 @@
    [go-package #f]
    [objc-class-prefix #f]
    [c#-namespace #f]
-   [switch-prefix #f]
+   [swift-prefix #f]
    [php-class-prefix #f]))
 
 (define-simple-class message-options% options%
