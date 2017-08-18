@@ -49,7 +49,7 @@
    [dependencies (make-hash)] ; hash complete-path? => bool? (is public?)
    [message-types '() #:list]
    [enum-types '() #:list]
-   [file-options (new file-options%)])
+   [options (new file-options%)])
 
   (define/public (has-dependency? complete-path)
     (hash-has-key? dependencies complete-path))
@@ -137,7 +137,7 @@
   ([java-package #f]
    [java-outer-classname #f]
    [java-generate-equals-and-hash #f] ; does nothing lol?
-   [java-string-check-utf8? #f]
+   [java-string-utf8-checked? #f]
    [optimize-for 'speed]
    [go-package #f]
    [objc-class-prefix #f]
