@@ -154,7 +154,8 @@
   ([c-type 'string]
    [js-type 'normal]
    [packed? #f]
-   [lazy? #f]))
+   [lazy? #f]
+   [lispy #f]))
 
 (define-simple-class enum-options% options%
   ([alias-allowed? #f]))

@@ -491,6 +491,7 @@
 
    [<field> ("packed" => *bool* set-packed)
             ("lazy"   => *bool* set-lazy)
+            ("lispy"  => *string* set-lispy)
             ("ctype"  => *c-type* set-c-type)
             ("jstype" => *js-type* set-js-type)]
 
