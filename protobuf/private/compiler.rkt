@@ -381,6 +381,53 @@
 
 
 
+(define-syntax %-option-compiler
+  (syntax-rules (=>)
+    [(_ [kind (name => type method) ...] ...)
+     (λ (the-kind the-ast the-opt)
+
+       (when (or (ast:option-extension the-ast)
+                 (not (= 1 (length (ast:option-names the-ast)))))
+         (invalid-option the-ast))
+
+       (case the-kind
+         [(kind)
+          (case (first (ast:option-names the-ast))
+            [(name)
+             (send the-opt method
+                   (type (ast-loc the-ast)
+                         (ast:option-value the-ast)))] ...
+            [else (invalid-option the-ast)])] ...
+         [else (invalid-option the-ast)]))]))
+
+(define (invalid-option ast)
+  (raise-compile-error (ast-loc ast)
+                       "invalid option ~a~a"
+                       (if (ast:option-extension ast)
+                           (format "(~a)." (ast:option-extension ast))
+                           "")
+                       (string-join (ast:option-names ast) ".")))
+
+
+(define (*bool* loc x)
+  (if (boolean? x) x
+      (raise-compile-error loc "expected boolean value")))
+
+(define compile-option
+  (%-option-compiler
+
+   [<message> ("message_set_wire_format" => *bool* set-message-set-wire-format)
+              ("no_standard_descriptor_accessor" => *bool* set-no-standard-accessor)]
+
+   [<field> ("packed" => *bool* set-packed)
+            ("lazy" => *bool* set-lazy)]
+
+   [<enum> ("allow_alias" => *bool* set-alias-allowed)]
+
+   ))
+
+
+
 ;; reset all parameters to ensure fresh compilation
 (define-syntax-rule (with-clean-compile body ...)
   (parameterize ([file-descriptor-pool (make-hash)]
