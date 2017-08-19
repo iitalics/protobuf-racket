@@ -12,7 +12,8 @@ option php_class_prefix = ":(";
 
 enum DrawMode {
   option allow_alias = true;
-  Fill = 0;
+  option deprecated = true;
+  Fill = 0 [deprecated = true];
   Stroke = 1;
   Solid = 0;
   Outline = 1;
@@ -21,8 +22,9 @@ enum DrawMode {
 message Polygon {
   option message_set_wire_format = true;
   option no_standard_descriptor_accessor = true;
+  option deprecated = true;
 
-  repeated uint32 point_x = 1 [packed = true];
+  repeated uint32 point_x = 1 [packed = true, deprecated = true];
   repeated uint32 point_y = 2 [packed = true];
   DrawMode draw_mode = 3;
 }

@@ -191,9 +191,9 @@
        (let* ([fd (parse->descriptor "options1.proto")]
               [file-opts (send fd get-options)]
               [DrawMode (first (send fd get-enum-types))]
+              [Fill (first (send DrawMode get-values))]
               [Polygon (first (send fd get-message-types))]
               [point_x (first (send Polygon get-fields))])
-
          (check-equal? (send file-opts get-java-package) "draw.simple.types")
          (check-equal? (send file-opts get-java-outer-classname) "draw.simple.types.Graphics")
          (check-true (send file-opts is-java-string-utf8-checked?))
@@ -203,9 +203,13 @@
          (check-equal? (send file-opts get-swift-prefix) "SimpleDraw")
          (check-equal? (send file-opts get-php-class-prefix) ":(")
          (check-true (send (send DrawMode get-options) is-alias-allowed?))
+         (check-true (send (send DrawMode get-options) is-deprecated?))
+         (check-true (send (send Fill get-options) is-deprecated?))
          (check-true (send (send Polygon get-options) is-message-set-wire-format?))
          (check-true (send (send Polygon get-options) is-no-standard-accessor?))
-         (check-true (send (send point_x get-options) is-packed?)))))
+         (check-true (send (send Polygon get-options) is-deprecated?))
+         (check-true (send (send point_x get-options) is-packed?))
+         (check-true (send (send point_x get-options) is-deprecated?)))))
 
     (check-exn (exn-matches exn:fail:compile? #px"expected string value")
                (λ () (parse->descriptor "options2.proto")))
