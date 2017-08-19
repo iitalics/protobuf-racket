@@ -418,14 +418,29 @@
   (if (boolean? x) x
       (raise-compile-error loc "expected boolean value")))
 
+(define (*string* loc x)
+  (if (string? x) x
+      (raise-compile-error loc "expected string value")))
+
+
 (define compile-option
   (%-option-compiler
 
-   [<message> ("message_set_wire_format" => *bool* set-message-set-wire-format)
+   [<file> ("java_package"           => *string* set-java-package)
+           ("java_outer_classname"   => *string* set-java-outer-classname)
+           ("java_generate_equals_and_hash" => *bool* set-java-generate-equals-and-hash)
+           ("java_string_check_utf8" => *bool*   set-java-string-utf8-checked)
+           ("go_package"             => *string* set-go-package)
+           ("objc_class_prefix"      => *string* set-objc-class-prefix)
+           ("csharp_namespace"       => *string* set-c#-namespace)
+           ("swift_prefix"           => *string* set-swift-prefix)
+           ("php_class_prefix"       => *string* set-php-class-prefix)]
+
+   [<message> ("message_set_wire_format"         => *bool* set-message-set-wire-format)
               ("no_standard_descriptor_accessor" => *bool* set-no-standard-accessor)]
 
    [<field> ("packed" => *bool* set-packed)
-            ("lazy" => *bool* set-lazy)]
+            ("lazy"   => *bool* set-lazy)]
 
    [<enum> ("allow_alias" => *bool* set-alias-allowed)]
 
