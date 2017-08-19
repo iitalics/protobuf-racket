@@ -138,7 +138,12 @@
      (for ([the-sub-ast (in-list e)])
        (compile-ast the-sub-ast (send this-desc method)))]))
 
-
+(define-syntax %-options
+  (syntax-rules (<=)
+    [(_ kind e <= method)
+     (let ([opts (send this-desc method)])
+       (for ([the-sub-ast (in-list e)])
+         (compile-option 'kind the-sub-ast opts)))]))
 
 
 ;; the current scope string (e.g. "google.protobuf" or "")
@@ -172,6 +177,7 @@
 
    [(ast:message (name fields oneofs map-fields messages enums rsvs opts))
     (send this-desc set-full-name (%-scoped-name name))
+    (%-options <message> opts <= get-options)
     (parameterize ([current-message this-desc]
                    [current-scope (name-append (current-scope) name)])
       (%-sub-asts fields     => add-field)
@@ -179,13 +185,12 @@
       (%-sub-asts map-fields => add-field)
       (%-sub-asts messages   => add-nested-type)
       (%-sub-asts enums      => add-nested-enum)
-      ;; TODO: compile message options
       (compile-reserved rsvs this-desc))]
 
 
    [(ast:field (name number label type opts))
     (%-scoped-name name)
-    ;; TODO: compile field options
+    (%-options <field> opts <= get-options)
     (send this-desc set-number number)
     (send this-desc set-label label)
     (send this-desc set-type type)
@@ -195,7 +200,6 @@
 
    [(ast:oneof (name fields))
     (%-scoped-name name)
-    ;; TODO: compile oneof options
     (for ([sub-field (in-list fields)])
       (let ([sub-field-desc (send (current-message) add-field)])
         (compile-ast sub-field sub-field-desc)
@@ -204,6 +208,7 @@
 
    [(ast:map-field (name number key-type val-type opts))
     (%-scoped-name name)
+    (%-options <map-field> opts <= get-options)
     (send this-desc set-number number)
     (send this-desc set-label 'repeated)
     (send this-desc set-type (make-map-entry-type this-loc key-type val-type))]
@@ -211,8 +216,8 @@
 
    [(ast:enum (name vals opts))
     (%-scoped-name name)
+    (%-options <enum> opts <= get-options)
     (%-sub-asts vals => add-value)
-    ;; TODO: compile enum options
     (match vals
       [(cons (ast:enum-val _ _ 0 _) _) 'ok]
       ['() (raise-compile-error this-loc "enum must contain at least one field")]
@@ -221,8 +226,8 @@
 
    [(ast:enum-val (name number opts))
     (%-scoped-name name)
+    (%-options <enum-val> opts <= get-options)
     (send this-desc set-number number)
-    ;; TODO: compile enum value options
     ]))
 
 
@@ -367,8 +372,8 @@
                       [current-message #f]
                       [current-unresolved '()])
 
-         ;; TODO: compile file options
-
+         (for ([opt (in-list opts)])
+           (compile-option '<file> opt (send file-desc get-options)))
          (for ([msg-ast (in-list messages)])
            (compile-ast msg-ast (send file-desc add-message)))
          (for ([enum-ast (in-list enums)])
