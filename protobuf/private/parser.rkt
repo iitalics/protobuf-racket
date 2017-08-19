@@ -124,30 +124,32 @@
   ;;   file
   (<file>
    [(<syntax> <toplevels>)
-    (begin
-      (unless (equal? $1 "proto3")
+    (if (not (equal? $1 "proto3"))
         (raise-parse-error ($1-src)
                            (format "unsupported syntax ~v, expected ~v"
-                                   $1 "proto3")))
-      (match (distinguish $2 #:reverse? #t
-                          ast:import?
-                          ast:option?
-                          ast:message?
-                          ast:enum?)
-        [(list imports options msgs enums pkg-decls)
-         (let ([pkg-name (match pkg-decls
-                           ['() ""]
-                           [(list (ast:package-decl _ x)) x]
-                           [(list* (ast:package-decl _ x)
-                                   (ast:package-decl 2nd-src _)
-                                   _)
-                            (raise-parse-error 2nd-src "package already declared as ~v" x)])])
-           (ast:root ($1-src)
-                     pkg-name
-                     imports
-                     msgs
-                     enums
-                     options))]))])
+                                   $1 "proto3"))
+
+        (match (distinguish $2 #:reverse? #t
+                            ast:import?
+                            ast:option?
+                            ast:message?
+                            ast:enum?)
+          [(list imports options msgs enums pkg-decls)
+
+           (let ([pkg-name (match pkg-decls
+                             ['() ""]
+                             [(list (ast:package-decl _ x)) x]
+                             [(list* (ast:package-decl _ x)
+                                     (ast:package-decl 2nd-src _)
+                                     _)
+                              (raise-parse-error 2nd-src "package already declared as ~v" x)])])
+
+             (ast:root ($1-src)
+                       pkg-name
+                       imports
+                       msgs
+                       enums
+                       options))]))])
 
 
   (<syntax>
@@ -172,7 +174,8 @@
    [(MINUS FLOATLIT) (- $2)]
    [(STRINGLIT) $1]
    [(KW-true) #t]
-   [(KW-false) #f])
+   [(KW-false) #f]
+   [(IDENT) (string->symbol $1)])
 
 
   ;;   toplevels
