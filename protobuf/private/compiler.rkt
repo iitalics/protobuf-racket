@@ -413,6 +413,16 @@
                            "")
                        (string-join (ast:option-names ast) ".")))
 
+(define-syntax %-option-enum-type
+  (syntax-rules (=>)
+    [(_ errmsg-name [before => after-expr] ...)
+     (λ (loc x)
+       (case x
+         [(before) after-expr] ...
+         [else (raise-compile-error loc
+                                    "expected ~a enum value"
+                                    'errmsg-name)]))]))
+
 
 (define (*bool* loc x)
   (if (boolean? x) x
@@ -422,11 +432,29 @@
   (if (string? x) x
       (raise-compile-error loc "expected string value")))
 
+(define *optimize-mode*
+  (%-option-enum-type OptimizeMode
+    [SPEED => 'speed]
+    [CODE_SIZE => 'code-size]
+    [LITE_RUNTIME => 'lite-runtime]))
+
+(define *c-type*
+  (%-option-enum-type CType
+    [STRING => 'string]
+    [CORD => 'cord]
+    [STRING_PIECE => 'string-piece]))
+
+(define *js-type*
+  (%-option-enum-type JSType
+    [JS_NORMAL => 'normal]
+    [JS_STRING => 'string]
+    [JS_NUMBER => 'number]))
+
 
 (define compile-option
   (%-option-compiler
-
-   [<file> ("java_package"           => *string* set-java-package)
+   [<file> ("optimize_for"           => *optimize-mode* set-java-optimize-for)
+           ("java_package"           => *string* set-java-package)
            ("java_outer_classname"   => *string* set-java-outer-classname)
            ("java_generate_equals_and_hash" => *bool* set-java-generate-equals-and-hash)
            ("java_string_check_utf8" => *bool*   set-java-string-utf8-checked)
@@ -440,10 +468,11 @@
               ("no_standard_descriptor_accessor" => *bool* set-no-standard-accessor)]
 
    [<field> ("packed" => *bool* set-packed)
-            ("lazy"   => *bool* set-lazy)]
+            ("lazy"   => *bool* set-lazy)
+            ("ctype"  => *c-type* set-c-type)
+            ("jstype" => *js-type* set-js-type)]
 
    [<enum> ("allow_alias" => *bool* set-alias-allowed)]
-
    ))
 
 
