@@ -15,4 +15,5 @@ message Store {
 message Customer {
   test.compiler.t5.Sandwich last_order = 1;
   t5.inside.Sandwich favorite = 2;
+  .test.compiler.t5.inside.Sandwich least_favorite = 3;
 }

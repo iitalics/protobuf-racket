@@ -169,7 +169,9 @@
          ; Customer.last_order
          (check-equal? (type-of (first (send Cust get-fields))) SW)
          ; Customer.favorite
-         (check-equal? (type-of (second (send Cust get-fields))) inside.SW))))
+         (check-equal? (type-of (second (send Cust get-fields))) inside.SW)
+         ; Customer.least_favorite
+         (check-equal? (type-of (third (send Cust get-fields))) inside.SW))))
 
     (check-not-exn
      (λ ()
