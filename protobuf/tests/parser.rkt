@@ -12,15 +12,14 @@
                        racket/syntax
                        racket/sequence))
 
-  (define-for-syntax test-id 0)
   (define-syntax parse-test
     (syntax-parser
       [(_ (token ...)
-          (~optional (~seq #:package exp-pkg-name:str) #:defaults ([exp-pkg-name #'""]))
-          (~optional (~seq #:imports exp-imports:expr ...) #:defaults ([(exp-imports 1) '()]))
-          (~optional (~seq #:messages exp-msgs:expr ...) #:defaults ([(exp-msgs 1) '()]))
-          (~optional (~seq #:enums exp-enums:expr ...) #:defaults ([(exp-enums 1) '()]))
-          (~optional (~seq #:options exp-opts:expr ...) #:defaults ([(exp-opts 1) '()])))
+          (~or (~seq #:package exp-pkg-name:str)
+               (~seq #:imports exp-imports:expr ...)
+               (~seq #:messages exp-msgs:expr ...)
+               (~seq #:enums exp-enums:expr ...)
+               (~seq #:options exp-opts:expr ...)) ...)
 
        ; generate real expressions for tokens, which includes implicit EOF
        #:with [token+eof ...] #'[token ... EOF]
@@ -42,28 +41,23 @@
                                             (datum->syntax this-syntax (random 2 100))))
        #:with [k-pos ...] (generate-temporaries #'[$k-src ...])
 
-       ; fake name for source file
-       #:with test-name (begin (set! test-id (add1 test-id))
-                               (datum->syntax this-syntax
-                                              (format "parse-test-#~a.proto" test-id)))
-
        ; things to check
-       #:with ([accessor expecteds ...] ...)
-       #'( [ast:root-imports    exp-imports ...]
-           [ast:root-messages   exp-msgs ...]
-           [ast:root-enums      exp-enums ...]
-           [ast:root-options    exp-opts ...] )
+       #:with ( [<accessor>          <expected> ...] ... )
+            #'( [ast:root-imports    exp-imports ...] ...
+                [ast:root-messages   exp-msgs ...] ...
+                [ast:root-enums      exp-enums ...] ...
+                [ast:root-options    exp-opts ...] ... )
 
-       #'(let ([$k-src (make-srcloc test-name ln col 1 #f)] ...)
+       #'(let ([$k-src (make-srcloc "<test>" ln col 1 #f)] ...)
            ; parse it
            (let ([ast
                   (let ([k-pos (make-position 1 ln col)] ...)
-                    (parameterize ([current-parse-source test-name])
+                    (parameterize ([current-parse-source "<test>"])
                       (parse-ast/sequence
                        (list (position-token token-expr k-pos k-pos) ...))))])
-             (check-equal? (ast:root-package ast) exp-pkg-name)
-             (for ([x (in-list (accessor ast))]
-                   [y (list expecteds ...)])
+             (check-equal? (ast:root-package ast) exp-pkg-name) ...
+             (for ([x (in-list (<accessor> ast))]
+                   [y (list <expected> ...)])
                (check-equal? x y)) ...))]))
 
 
