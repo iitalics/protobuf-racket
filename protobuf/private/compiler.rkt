@@ -402,6 +402,10 @@
              (send the-opt method
                    (type (ast-loc the-ast)
                          (ast:option-value the-ast)))] ...
+            [("deprecated")
+             (send the-opt set-deprecated
+                   (*bool* (ast-loc the-ast)
+                           (ast:option-value the-ast)))]
             [else (invalid-option the-ast)])] ...
          [else (invalid-option the-ast)]))]))
 
@@ -473,6 +477,9 @@
             ("jstype" => *js-type* set-js-type)]
 
    [<enum> ("allow_alias" => *bool* set-alias-allowed)]
+
+   [<map-field>]
+   [<enum-val>]
    ))
 
 
