@@ -21,6 +21,7 @@
           (current-continuation-marks)
           (list loc loc))))
 
+
 ;; append a name onto another, e.g.
 ;;   (name-append "a.b" "c") = "a.b.c"
 ;;   (name-append "" "d.e") = "d.e"
@@ -30,15 +31,13 @@
       (string-append pre "." post)))
 
 ;; break scope into subscopes, e.g.
-;;   (subscopes "a.b.c") = '("a.b.c" "a.b" "a")
-(define (subscopes scope)
-  (define-values (_ scopes)
-    (for/fold ([fullname ""] [scopes '()])
-              ([part (in-list (string-split scope "."))])
-      (let ([new-fullname (name-append fullname part)])
-        (values new-fullname
-                (cons new-fullname scopes)))))
-  scopes)
+;;   (in-subscopes "a.b.c") => "a", "a.b", "a.b.c"
+(define (in-subscopes scope)
+  (in-sequences (for/stream ([c (in-string scope)]
+                             [i (in-naturals)]
+                             #:when (char=? #\. c))
+                  (substring scope 0 i))
+                (in-value scope)))
 
 
 ;; maps qualified names to descriptors
@@ -299,22 +298,10 @@
   entry-type)
 
 
-;; find any descriptor from the given scope using the given short name
-;; may return anything with a full name, including fields and other non-types!
-;; e.g.
-;;   (resolve-something "google.protobuf" "protobuf.Any") => {google.protobuf.Any}
-(define (resolve-something scope short-name)
-  (or (for/or ([ss (in-list (subscopes scope))])
-        (hash-ref (all-descriptors)
-                  (name-append ss short-name)
-                  #f))
-      (hash-ref (all-descriptors)
-                short-name
-                #f)))
-
-
 ;; resolve the unresolved field described by the given unresolved-field-type
 ;; instance
+;;
+;; resolve : unresolved-field-type? -> void
 (define (resolve ur)
   (match ur
     [(struct unresolved-field-type (loc desc scope))
@@ -335,6 +322,37 @@
                                "cannot resolve type ~a in scope ~a"
                                short-name
                                scope)]))]))
+
+;; find any descriptor from the given scope using the given short name
+;; may return anything with a full name, including fields and other non-types!
+;; e.g.
+;;   (resolve-something "google.protobuf" "protobuf.Any") => {google.protobuf.Any}
+;;
+;; resolve-something : string? string? -> any
+(define (resolve-something scope short-name)
+  (define names-to-check
+    (cond
+      ;; ".X.Y" = absolute path
+      [(char=? #\. (string-ref short-name 0))
+       (list (substring short-name 1))]
+
+      ;; create list of subscopes to check in order
+      ;; note: in-subscopes returns deep-scope-first
+      ;;         (e.g. "a.b.c" => "a", "a.b", "a.b.c")
+      ;;   but since we're accumulating onto a list, it
+      ;;   reverses the order, making the result shallow-scope-first
+      ;;   e.g.
+      ;;     (resolve-something "cereal.flavor" "LuckyCharms")
+      ;;     names-to-check = '("cereal.flavor.LuckyCharms" "cereal.LuckyCharms" "LuckyCharms")
+      [else
+       (for/fold ([names (list short-name)])
+                 ([ss (in-subscopes scope)])
+         (cons (name-append ss short-name)
+               names))]))
+
+  (for/or ([name (in-list names-to-check)])
+    (hash-ref (all-descriptors) name #f)))
+
 
 
 ;; compile the root of an ast tree into a file-descriptor%
@@ -363,7 +381,7 @@
 
      ;; register subscope variants of the package name
      ;; e.g. "foo.bar.baz" => "foo.bar.baz", "foo.bar", "foo"
-     (for ([ss (in-list (subscopes pkg))])
+     (for ([ss (in-subscopes pkg)])
        (hash-ref! (all-descriptors) ss file-desc))
 
      (define unresolved
