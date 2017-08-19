@@ -88,6 +88,13 @@
 
   (parse-test [
                KW-syntax EQ (STRINGLIT "proto3") SEMI
+               KW-option "option1" EQ "FOO_BAR" SEMI
+               ]
+              #:options
+              (ast:option $5-src #f '("option1") 'FOO_BAR))
+
+  (parse-test [
+               KW-syntax EQ (STRINGLIT "proto3") SEMI
                KW-message "Msg1" LC
                KW-repeated KW-int32 "x" EQ 3 SEMI
                DOT "test" DOT "Msg2" "y" EQ 4 SEMI
