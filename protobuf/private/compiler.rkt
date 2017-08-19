@@ -407,7 +407,7 @@
 
 (define (invalid-option ast)
   (raise-compile-error (ast-loc ast)
-                       "invalid option ~a~a"
+                       "invalid option \"~a~a\""
                        (if (ast:option-extension ast)
                            (format "(~a)." (ast:option-extension ast))
                            "")

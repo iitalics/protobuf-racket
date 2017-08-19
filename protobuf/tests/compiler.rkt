@@ -223,7 +223,7 @@
     (check-exn (exn-matches exn:fail:compile? #px"expected JSType enum value")
                (λ () (parse->descriptor "options5.proto")))
 
-    (check-exn (exn-matches exn:fail:compile? #px"invalid option \\(invalid\\.opt\\)\\.io\\.n")
+    (check-exn (exn-matches exn:fail:compile? #px"invalid option \"\\(invalid\\.opt\\)\\.io\\.n\"")
                (λ () (parse->descriptor "options6.proto")))
 
     ))
