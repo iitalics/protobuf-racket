@@ -184,4 +184,46 @@
          (check-equal? (type-of key) 'uint32)
          (check-equal? (type-of value) A))))
 
+
+    ;; test options
+    (check-not-exn
+     (λ ()
+       (let* ([fd (parse->descriptor "options1.proto")]
+              [file-opts (send fd get-options)]
+              [DrawMode (first (send fd get-enum-types))]
+              [Polygon (first (send fd get-message-types))]
+              [point_x (first (send Polygon get-fields))])
+
+         (check-equal? (send file-opts get-java-package) "draw.simple.types")
+         (check-equal? (send file-opts get-java-outer-classname) "draw.simple.types.Graphics")
+         (check-true (send file-opts is-java-string-utf8-checked?))
+         (check-equal? (send file-opts get-go-package) "simpledraw")
+         (check-equal? (send file-opts get-objc-class-prefix) "SD")
+         (check-equal? (send file-opts get-c#-namespace) "Draw.Simple")
+         (check-equal? (send file-opts get-swift-prefix) "SimpleDraw")
+         (check-equal? (send file-opts get-php-class-prefix) ":(")
+         (check-true (send (send DrawMode get-options) is-alias-allowed?))
+         (check-true (send (send Polygon get-options) is-message-set-wire-format?))
+         (check-true (send (send Polygon get-options) is-no-standard-accessor?))
+         (check-true (send (send point_x get-options) is-packed?)))))
+
+    (check-exn (exn-matches exn:fail:compile? #px"expected string value")
+               (λ () (parse->descriptor "options2.proto")))
+
+    (check-exn (exn-matches exn:fail:compile? #px"expected boolean value")
+               (λ () (parse->descriptor "options3.proto")))
+
+    (check-not-exn
+     (λ ()
+       (let* ([fd (parse->descriptor "options4.proto")]
+              [A (first (send fd get-message-types))]
+              [x-opts (send (first (send A get-fields)) get-options)])
+         (check-equal? (send x-opts get-js-type) 'number))))
+
+    (check-exn (exn-matches exn:fail:compile? #px"expected JSType enum value")
+               (λ () (parse->descriptor "options5.proto")))
+
+    (check-exn (exn-matches exn:fail:compile? #px"invalid option \\(invalid\\.opt\\)\\.io\\.n")
+               (λ () (parse->descriptor "options6.proto")))
+
     ))

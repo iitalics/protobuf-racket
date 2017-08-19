@@ -1,0 +1,28 @@
+syntax = 'proto3';
+
+option java_package = "draw.simple.types";
+option java_outer_classname = "draw.simple.types.Graphics";
+option java_string_check_utf8 = true;
+
+option go_package = "simpledraw";
+option objc_class_prefix = "SD";
+option csharp_namespace = "Draw.Simple";
+option swift_prefix = "SimpleDraw";
+option php_class_prefix = ":(";
+
+enum DrawMode {
+  option allow_alias = true;
+  Fill = 0;
+  Stroke = 1;
+  Solid = 0;
+  Outline = 1;
+}
+
+message Polygon {
+  option message_set_wire_format = true;
+  option no_standard_descriptor_accessor = true;
+
+  repeated uint32 point_x = 1 [packed = true];
+  repeated uint32 point_y = 2 [packed = true];
+  DrawMode draw_mode = 3;
+}

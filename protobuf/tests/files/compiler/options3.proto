@@ -1,0 +1,2 @@
+syntax = 'proto3';
+option java_string_checked_utf8 = "yes";
