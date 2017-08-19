@@ -98,14 +98,14 @@
   (for-each traverse-deps initial-paths)
 
   ;; evaluate a preorder using reflexivity or transitivity
-  (define (dep<=? p1 p2) (dep>=? p2 p1))
-  (define (dep>=? p1 p2)
-    (or (equal? p1 p2)
-        (ormap (λ (p1-) (dep>=? p1- p2))
-               (hash-ref preorders p1 '()))))
+  (define (dep<=? path1 path2) (dep>=? path2 path1))
+  (define (dep>=? path1 path2)
+    (or (equal? path1 path2)
+        (ormap (λ (p) (dep>=? p path2))
+               (hash-ref preorders path1 '()))))
 
   ;; sort paths by preorder and return corresponding asts
-  (sort asts dep<=? #:key ast-source))
+  (sort asts dep<=? #:key ast-source-file-path))
 
 
 

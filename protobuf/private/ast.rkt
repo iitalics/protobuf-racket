@@ -7,8 +7,9 @@
          ast:options?
          ast:type?
          empty-options
-         ast-source
-         ast-name)
+         ast-source-file-path)
+
+
 
 
 (struct ast (loc) #:transparent)
@@ -100,17 +101,5 @@
 
 (define empty-options '())
 
-(define (ast-source f)
+(define (ast-source-file-path f)
   (srcloc-source (ast-loc f)))
-
-(define (ast-name a)
-  (match a
-    [(ast:package-decl _ m) m]
-    [(ast:message _ m _ _ _ _ _ _ _) m]
-    [(ast:field _ m _ _ _ _) m]
-    [(ast:oneof _ m _) m]
-    [(ast:map-field _ m _ _ _ _) m]
-    [(ast:enum _ m _ _) m]
-    [(ast:enum-val _ m _ _) m]
-    [_
-     (error "ast does not have a name:\n" a)]))

@@ -354,11 +354,11 @@
      ;; TODO: dependencies set
 
      (define file-desc (new file-descriptor%
-                            [file-path (ast-source ast)]
+                            [file-path (ast-source-file-path ast)]
                             [package pkg]))
 
      (hash-set! (file-descriptor-pool)
-                (ast-source ast)
+                (ast-source-file-path ast)
                 file-desc)
 
      ;; register subscope variants of the package name

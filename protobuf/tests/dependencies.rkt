@@ -24,7 +24,7 @@ cycle detected
     (syntax-parser
       [(_ #:input (in-path:str ...)
           #:order (out-path:str ...))
-       #'(check-equal? (map ast-source
+       #'(check-equal? (map ast-source-file-path
                             (parse+dependencies (list in-path ...)))
                        (list (resolve-file out-path) ...))]
 
