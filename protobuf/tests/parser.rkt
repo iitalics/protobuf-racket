@@ -49,17 +49,16 @@
                 [ast:root-options    exp-opts ...] ... )
 
        #'(let ([$k-src (make-srcloc "<test>" ln col 1 #f)] ...)
-           ; parse it
-           (let ([ast
-                  (let ([k-pos (make-position 1 ln col)] ...)
-                    (parameterize ([current-parse-source "<test>"])
-                      (parse-ast/sequence
-                       (list (position-token token-expr k-pos k-pos) ...))))])
-             (check-equal? (ast:root-package ast) exp-pkg-name) ...
-             (for ([x (in-list (<accessor> ast))]
-                   [y (list <expected> ...)])
-               (check-equal? x y)) ...))]))
-
+           (check-not-exn
+            (λ ()
+              (let ([ast (let ([k-pos (make-position 1 ln col)] ...)
+                           (parameterize ([current-parse-source "<test>"])
+                             (parse-ast/sequence
+                              (list (position-token token-expr k-pos k-pos) ...))))])
+                (check-equal? (ast:root-package ast) exp-pkg-name) ...
+                (for ([x (in-list (<accessor> ast))]
+                      [y (list <expected> ...)])
+                  (check-equal? x y)) ...))))]))
 
 
 
