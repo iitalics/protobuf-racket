@@ -10,5 +10,12 @@
   )
 
 (module+ main
-  ;; Main entry point, executed when run with the `racket` executable or DrRacket.
+  (require "private/codegen.rkt")
+
+  (load-protobuf "main.proto"
+    #:extra-proto-path "tests/files"
+    #:export ([tests.files.Color color]))
+
+  (displayln (number->color 0)) ; Red
+
   )
