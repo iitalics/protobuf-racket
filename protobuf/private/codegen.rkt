@@ -81,6 +81,23 @@ enums:
   (define current-todo-types
     (make-parameter (make-hash)))
 
+  (define-syntax %-generate-new-type
+    (syntax-rules (=>)
+      [(_ desc-expr
+          (fmt-str => int-id) ...
+          #:predicate pred-expr
+          #:default mk-def-expr
+          defn-stx-expr)
+       (let* ([desc desc-expr]
+              [gen-ty (generated-type (list (rename-binding fmt-str #`int-id) ...)
+                                      pred-expr
+                                      mk-def-expr)])
+         (hash-set! (current-todo-types) desc gen-ty)
+         (new-definitions (cons defn-stx-expr (new-definitions)))
+         gen-ty)]))
+
+
+
   ;; either generate the definition for the descriptor,
   ;; or find an already-generated definition
   (define (descriptor->generated-type desc [full-name (send desc get-full-name)])
@@ -98,6 +115,20 @@ enums:
       [else
        (error "cannot generate type " full-name)]))
 
+  ;; return pair of (list internal-id renamed-id) for all
+  ;; bindings to be exported from the given generated-type,
+  ;; using the given new-id to fill in placeholders in names
+  ;; e.g. (renamed-bindings <some enum> 'E)
+  ;;   => '((temp1 . E?) (temp2 . number->E) (temp3 . E->number))
+  ;;
+  ;; renamed-bindings : generated-type? symbol? -> (listof (cons id? id?))
+  (define (renamed-bindings src gen-ty new-id)
+    (for/list ([binding (in-list (generated-type-bindings gen-ty))])
+      (let ([internal-id (rename-binding-internal-id binding)]
+            [renamed-id (format-id src (rename-binding-format-str binding) new-id)])
+        (cons internal-id
+              renamed-id))))
+
 
   (define (type-default-stx ty)
     (case ty
@@ -111,20 +142,21 @@ enums:
        (generated-type-make-default-stx
         (descriptor->generated-type ty))]))
 
-  (define-syntax %-generate-new-type
-    (syntax-rules (=>)
-      [(_ desc-expr
-          (fmt-str => int-id) ...
-          #:predicate pred-expr
-          #:default mk-def-expr
-          defn-stx-expr)
-       (let* ([desc desc-expr]
-              [gen-ty (generated-type (list (rename-binding fmt-str #`int-id) ...)
-                                      pred-expr
-                                      mk-def-expr)])
-         (hash-set! (current-todo-types) desc gen-ty)
-         (new-definitions (cons defn-stx-expr (new-definitions)))
-         gen-ty)]))
+  (define (type-predicate-stx ty)
+    (case ty
+      [(int32 sint32 fixed32 sfixed32) #'sint32?]
+      [(uint32) #'uint32?]
+      [(int64 sint64 fixed64 sfixed64) #'sint64?]
+      [(uint64) #'uint64?]
+      [(float) #'flonum?]
+      [(double) #'double-flonum?]
+      [(bool) #'boolean?]
+      [(string) #'string?]
+      [(bytes) #'bytes?]
+      [else
+       (generated-type-predicate-stx
+        (descriptor->generated-type ty))]))
+
 
 
   ;; generate 'generated-type' for the given enum descriptor
@@ -209,6 +241,7 @@ enums:
                         (generate-temporaries (range 2)))
 
       [(optional fld _)
+       #:with is-type? (type-predicate-stx (send fld-desc get-type))
        #:with mk-default (type-default-stx (send fld-desc get-type))
 
        #:with lispy-id (datum->syntax #f
@@ -235,40 +268,17 @@ enums:
 
 
 
-  ;; return a list of old/new bindings for all
-  ;; generated bindings associated with the type.
-  ;;
-  ;; get-binds : stx? string? symbol? -> (listof (list id?<old> id?<new>))
-  (define (get-binds src full-name new-id-sym)
-    (define desc (hash-ref (all-descriptors)
-                           full-name
-                           (λ ()
-                             (raise-syntax-error #f "undefined protobuf type" src))))
-
-    (unless (or (is-a? desc descriptor%)
-                (is-a? desc enum-descriptor%))
-      (raise-syntax-error #f (format "~a is not a type" full-name) src))
-
-    (define gen-ty
-      (descriptor->generated-type desc full-name))
-
-    (for/list ([b (in-list (generated-type-bindings gen-ty))])
-      (list (rename-binding-internal-id b)
-            (format-id src (rename-binding-format-str b) new-id-sym))))
-
-
-
   ;; for use in #:export (...)
   (define-syntax-class protobuf-export
     #:datum-literals ()
-    #:attributes (full-path new-id)
+    #:attributes (full-name new-id)
     ;; #:export ([name rename-out])
-    (pattern [full-path-id:id new-id:id]
-             #:with full-path (symbol->string (syntax-e #'full-path-id)))
+    (pattern [full-name-id:id new-id:id]
+             #:with full-name (symbol->string (syntax-e #'full-name-id)))
 
     ;; #:export (name)
     (pattern both-id:id
-             #:with full-path (symbol->string (syntax-e #'both-id))
+             #:with full-name (symbol->string (syntax-e #'both-id))
              #:with new-id #'both-id))
 
   )
@@ -278,7 +288,7 @@ enums:
   (syntax-parser
     [(_ path:str ...
         (~or (~seq #:extra-proto-path x-proto-path)
-             (~seq #:export (export:protobuf-export ...))) ...)
+             (~seq #:export (export ...))) ...)
 
      ;; compile the paths (and any dependencies)
      #:do [(parameterize ([extra-proto-paths
@@ -290,19 +300,29 @@ enums:
 
      ;; generate all bindings requested by exports, and
      ;; rename them properly
-     #:with ((([old-id new-id] ...) ...)
+     #:with ((([old-id . new-id] ...) ...)
              [defn ...])
      (parameterize ([new-definitions '()])
-       (list (stx-map (λ (args)
-                        (with-syntax ([(src full-name new-id) args])
-                          (get-binds #'src
-                                     (syntax-e #'full-name)
-                                     (syntax-e #'new-id))))
-                      #'([export export.full-path export.new-id] ... ...))
-             (new-definitions)
-             ;; TODO: export generated-types from current-todo-types
-             ;;       as identifier e.g. protobuf:tests.files.Color
-             ))
+       (list
+        ;; generate [old-id . new-id] pairs for each export
+        ;; NOTE: this adds new definitions, as descriptor->generated-type
+        ;;   may generate a new implementation
+        (for/list ([src (in-syntax #'[export ... ...])])
+          (syntax-parse src
+            [x:protobuf-export
+             #:do [(define desc (hash-ref (all-descriptors) (syntax-e #'x.full-name) #f))]
+             #:fail-unless (or (is-a? desc descriptor%)
+                               (is-a? desc enum-descriptor%))
+                           "invalid / unknown protobuf type"
+             (renamed-bindings src
+                               (descriptor->generated-type desc)
+                               (syntax-e #'x.new-id))]))
+
+        (new-definitions)
+
+        ;; TODO: export generated-types from current-todo-types
+        ;;       as identifier e.g. protobuf:tests.files.Color
+        ))
 
      #'(begin
          defn ...
