@@ -123,12 +123,9 @@
 (define-syntax %-scoped-name
   (syntax-rules ()
     [(_ e)
-     (let* ([name e]
-            [full-name (name-append (current-scope) name)])
+     (let* ([name e] [full-name (name-append (current-scope) name)])
        (send this-desc set-name name)
-       (add-descriptor this-desc
-                       full-name
-                       this-loc)
+       (add-descriptor this-desc full-name this-loc)
        full-name)]))
 
 (define-syntax %-sub-asts
@@ -214,7 +211,7 @@
 
 
    [(ast:enum (name vals opts))
-    (%-scoped-name name)
+    (send this-desc set-full-name (%-scoped-name name))
     (%-options <enum> opts <= get-options)
     (%-sub-asts vals => add-value)
     (match vals

@@ -113,6 +113,7 @@
 
 (define-simple-class enum-descriptor% object%
   ([name ""]
+   [full-name ""]
    [file-descriptor (current-file-descriptor)]
    [values '() #:list]
    [options (new enum-options%)])
