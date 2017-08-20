@@ -18,11 +18,10 @@
     #:export ([tests.files.Color color]
               [tests.files.Point point]))
 
-
   (define pt (new point% [x 3] [y 4]))
 
   (displayln (send pt get-x))
   (displayln (send pt get-color))
-
+  (displayln (color->number (send pt get-color)))
 
   )

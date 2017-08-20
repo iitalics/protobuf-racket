@@ -49,6 +49,7 @@ messages:
 
 enums:
   bindings: {enum}?
+            default-{enum}
             number->{enum}
             {enum}->number
   predicate: {enum}?
@@ -165,8 +166,8 @@ enums:
   ;;
   ;; generate-enum! : enum-descriptor% -> generated-type?
   (define (generate-enum! desc)
-    (syntax-parse (generate-temporaries (range 3))
-      [( E? num->E E->num )
+    (syntax-parse (generate-temporaries #'(gen$E? gen$default-E gen$n->E gen$E->n))
+      [( E? def-E num->E E->num )
 
        #:with ([num sym] ...)
          (map (λ (ev)
@@ -182,18 +183,18 @@ enums:
 
        (%-generate-new-type desc
         ("~a?"        => E?)
+        ("default-~a" => def-E)
         ("number->~a" => num->E)
         ("~a->number" => E->num)
         #:predicate #'E?
         #:default #''fst-sym
 
-        #'(define-values (E? num->E E->num)
+        #'(define-values (E? def-E num->E E->num)
             ;; the sole purpose of this let-binding is to
             ;; install names to the procedures, so that
             ;; they appear as #<procedure:package.path.TypeName>
             ;; when pretty printed, not as the random internal name
-            (let ([full-E? (procedure-rename (or/c 'sym ...) 'full-E?)]
-                  [full-n->E (λ (i)
+            (let ([full-n->E (λ (i)
                                (case i
                                  [(num) 'sym] ...
                                  [else #f]))]
@@ -203,7 +204,10 @@ enums:
                                  [(sym) 'num] ...
                                  [else #f]))])
 
-              (values full-E? full-n->E full-E->n))))]))
+              (values (procedure-rename (or/c 'sym ...) 'full-E?)
+                      'fst-sym
+                      full-n->E
+                      full-E->n))))]))
 
 
   ;; generate 'generated-type' for the given message descriptor
