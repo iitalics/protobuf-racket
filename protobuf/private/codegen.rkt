@@ -16,26 +16,6 @@
 
 
 #|
-for fields of messages:
-  get-{field}                  ;; returns value, or default value if unset
-  set-{field}                  ;; sets to given value
-  clear-{field}                ;; sets to default value
-for fields with enum type:
-  get-{field}-number           ;; returns integer value of enum, rather than symbol
-
-for repeated fields:
-  get-{field}-count        ;; return length
-  get-{field}              ;; return list of values
-  add-{field}              ;; add a new element to list. if no argument suplied, creates default
-  add-{field}*             ;; append a list of elements
-  clear-{field}            ;; set to empty list
-
-for map fields:
-  get-{field}              ;; returns assoc list of key/values
-  get-{field}-hash         ;; returns immutable hash
-  put-{field}              ;; set a key of the map
-  {field}-ref              ;; get a value based on the key (optional 'default' argument)
-  clear-{field}            ;; make empty
 
 
 GENERATED:
@@ -43,9 +23,24 @@ protobuf:{package}.{message/enum-name}
 descriptor:{package}.{message/enum-name}
 
 messages:
-  bindings: {message}%
+  bindings: {message}?
+            make-{message}
+            default-{message}
+            <see: 'fields'>
   predicate: (is-a? {message}%)
   make-default: (new {message}%)
+
+fields:
+  optional:
+    {message}-{field}
+  repeated:
+    {message}-{field}-list
+  oneof:
+    {message}-{oneof}-case
+    {message}-has-{field}?
+  map field:
+    {message}-{field}
+    {message}-{field}-hash
 
 enums:
   bindings: {enum}?
