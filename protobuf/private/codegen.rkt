@@ -8,6 +8,7 @@
                    "dependencies.rkt"
                    "compiler.rkt")
          racket/base
+         racket/class
          racket/contract/base)
 
 
@@ -62,8 +63,8 @@ enums:
     (;; TODO: some way to determine if the bindings come
      ;;  from a stale .proto file (e.g. need to be regenerated)
      bindings
-     predicate-expr
-     make-default-expr)
+     predicate-stx
+     make-default-stx)
     #:prefab)
 
   ;; a binding that can be renamed,
@@ -80,6 +81,36 @@ enums:
   (define current-todo-types
     (make-parameter (make-hash)))
 
+  ;; either generate the definition for the descriptor,
+  ;; or find an already-generated definition
+  (define (descriptor->generated-type desc [full-name (send desc get-full-name)])
+    (cond
+      [(hash-ref (current-todo-types) desc #f) => values]
+
+      ;; TODO: use syntax-local-value to allow modules
+      ;;       to (provide ..) protobuf type implementations
+      ;;       using some sort of protobuf:{package}.{type} symbol
+      ;[(syntax-local-value
+
+      [(is-a? desc enum-descriptor%) (generate-enum! desc)]
+      [(is-a? desc descriptor%) (generate-message! desc)]
+
+      [else
+       (error "cannot generate type " full-name)]))
+
+
+  (define (type-default-stx ty)
+    (case ty
+      [(int32 uint32 sint32 fixed32 sfixed32) #'0]
+      [(int64 uint64 sint64 fixed64 sfixed64) #'0]
+      [(float double) #'0.0]
+      [(bool) #'#f]
+      [(string) #'""]
+      [(bytes) #'#""]
+      [else
+       (generated-type-make-default-stx
+        (descriptor->generated-type ty))]))
+
   (define-syntax %-generate-new-type
     (syntax-rules (=>)
       [(_ desc-expr
@@ -94,25 +125,6 @@ enums:
          (hash-set! (current-todo-types) desc gen-ty)
          (new-definitions (cons defn-stx-expr (new-definitions)))
          gen-ty)]))
-
-
-  ;; either generate the definition for the descriptor,
-  ;; or find an already-generated definition
-  (define (descriptor->generated-type desc
-                                      [full-name (send desc get-full-name)])
-    (cond
-      [(hash-ref (current-todo-types) desc #f) => values]
-
-      ;; TODO: use syntax-local-value to allow modules
-      ;;       to (provide ..) protobuf type implementations
-      ;;       using some sort of protobuf:{package}.{type} symbol
-      ;[(syntax-local-value
-
-      [(is-a? desc enum-descriptor%)
-       (generate-enum! desc)]
-
-      [else
-       (error "cannot generate type " full-name)]))
 
 
   ;; generate 'generated-type' for the given enum descriptor
@@ -162,26 +174,87 @@ enums:
               (values full-E? full-n->E full-E->n))))]))
 
 
+  ;; generate 'generated-type' for the given message descriptor
+  ;; additionally, adds it to 'current-todo-types', and adds
+  ;; definitions to 'new-definitions'
+  ;;
+  ;; generate-message! : descriptor% -> generated-type?
+  (define (generate-message! desc)
+    (syntax-parse (generate-temporaries (range 2))
+      [( M% M? )
+
+       #:with full-M% (format-id #f "~a%" (send desc get-full-name))
+
+       #:with [(init-fld method ...) ...]
+         (map (λ (fld-desc)
+                (generate-field #f desc fld-desc))
+              (send desc get-fields))
+
+       (%-generate-new-type desc
+        ("~a%" => M%)
+        #:predicate #'M?
+        #:default #'(new M%)
+
+        #'(define-values (M? M%)
+            (let ([full-M%
+                   (class* object% () ;; TODO: message<%> interface?
+                     (super-new)
+                     (init-field init-fld ...)
+                     method ... ...)])
+              (values (λ (x) (is-a? x full-M%)) full-M%))))]))
+
+  ;; generate-field : descriptor% field-descriptor% -> (stx-list init-fld methods ...)
+  (define (generate-field src msg-desc fld-desc) ;; TODO: oneofs?
+    (syntax-parse (cons (send fld-desc get-label)
+                        (generate-temporaries (range 2)))
+
+      [(optional fld _)
+       #:with mk-default (type-default-stx (send fld-desc get-type))
+
+       #:with lispy-id (datum->syntax #f
+                        (string->symbol
+                         (or (send (send fld-desc get-options) get-lispy)
+                             (send fld-desc get-name))))
+
+       #:with get-F (format-id src "get-~a" #'lispy-id)
+       #:with set-F (format-id src "set-~a" #'lispy-id)
+       #:with clear-F (format-id src "clear-~a" #'lispy-id)
+
+       #'([(fld lispy-id) mk-default]
+          (public get-F set-F clear-F)
+          ;; TODO: get-F-number for enums
+          (define (get-F)
+            fld)
+          (define (clear-F)
+            (set! fld mk-default))
+          (define (set-F v)
+            (set! fld v)))]
+
+      [(repeated . _)
+       (error "repeated fields unimplemented")]))
+
+
+
   ;; return a list of old/new bindings for all
   ;; generated bindings associated with the type.
   ;;
   ;; get-binds : stx? string? symbol? -> (listof (list id?<old> id?<new>))
-  (define (get-binds stx full-name new-id-sym)
+  (define (get-binds src full-name new-id-sym)
     (define desc (hash-ref (all-descriptors)
                            full-name
                            (λ ()
-                             (raise-syntax-error #f "undefined protobuf type" stx))))
+                             (raise-syntax-error #f "undefined protobuf type" src))))
 
     (unless (or (is-a? desc descriptor%)
                 (is-a? desc enum-descriptor%))
-      (raise-syntax-error #f (format "~a is not a type" full-name) stx))
+      (raise-syntax-error #f (format "~a is not a type" full-name) src))
 
     (define gen-ty
       (descriptor->generated-type desc full-name))
 
     (for/list ([b (in-list (generated-type-bindings gen-ty))])
       (list (rename-binding-internal-id b)
-            (format-id stx (rename-binding-format-str b) new-id-sym))))
+            (format-id src (rename-binding-format-str b) new-id-sym))))
 
 
 

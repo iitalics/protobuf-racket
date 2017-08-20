@@ -10,12 +10,19 @@
   )
 
 (module+ main
-  (require "private/codegen.rkt")
+  (require "private/codegen.rkt"
+           racket/class)
 
   (load-protobuf "main.proto"
     #:extra-proto-path "tests/files"
-    #:export ([tests.files.Color color]))
+    #:export ([tests.files.Color color]
+              [tests.files.Point point]))
 
-  (displayln (number->color 0)) ; Red
+
+  (define pt (new point% [x 3] [y 4]))
+
+  (displayln (send pt get-x))
+  (displayln (send pt get-color))
+
 
   )

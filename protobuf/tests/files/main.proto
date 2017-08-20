@@ -6,3 +6,9 @@ enum Color {
   Blue = 1;
   Green = 2;
 }
+
+message Point {
+  Color color = 1;
+  uint32 x = 2;
+  uint32 y = 3;
+}
