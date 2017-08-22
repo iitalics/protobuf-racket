@@ -3,6 +3,13 @@
          "dependencies.rkt"
          "descriptors.rkt")
 
+(provide (struct-out exn:fail:compile)
+         fq-name?
+         ur-name?
+         all-descriptors
+         recursive-descent
+         compile-root)
+
 
 ;; compiler-specific exception type
 (define-struct (exn:fail:compile exn:fail:read) ())
@@ -66,3 +73,74 @@
 (define current-oneof-fq-name
   (make-parameter #f))
 
+
+
+(define (add-unresolved! dsc
+                         [fq-name (qualify-in-scope (dsctor-name dsc))]
+                         [loc (dsctor-loc dsc)])
+  (cond
+    [(hash-ref (all-descriptors) fq-name #f)
+     =>
+     (λ (prev-dsc)
+       (raise-compile-error
+        loc
+        "name ~a already used by file ~a"
+        fq-name
+        (shorten-file-path (dsctor-source-file-path prev-dsc))))]
+
+    [else
+     (hash-set! (all-descriptors) fq-name dsc)
+     (current-unresolved-descriptors
+      (cons (cons fq-name dsc)
+            (current-unresolved-descriptors)))
+     fq-name]))
+
+
+(define (recursive-descent ast)
+  (error 'unimplemented))
+
+(define (compile-root ast)
+  (dsctor:file (ast-loc ast)
+               #f
+               (ast:root-options ast)
+               (ast:root-package ast)
+               '() '() '() '() '()))
+
+
+
+#|
+-- first pass: (recursive decent)
+
+instantiate skeleton descriptors (as described above)
+check for name conflicts
+insert (cons AST dsc) into current-unresolved-descriptors
+
+dsctor-options = (listof <a st:option>)
+dsctor:message-fields/oneofs = (listof <fq-name>)
+dsctor:message-nested-* = (listof <fq-name>)
+dsctor:message-reserved-* = #f
+dsctor:field-type = <uqname>
+
+
+-- second pass: (iterate current-unresolved-descriptors)
+
+parse options
+parse reserved fields, check against in-use names
+check for duplicate field/value numbers
+resolve types
+
+dsctor-options = (hash string? => any)
+dsctor:reserved-names = (setof string?)
+dsctor:reserved-index? = (-> integer? boolean?)
+dsctor:field-type = <fq-name>
+
+
+-- third pass: (iterate current-unresolved-descriptors)
+
+dsctor:message-fields = (listof dsctor:field?)
+dsctor:message-oneofs = (listof dsctor:oneof?)
+
+create finalized descriptors and insert into all-descriptors
+create dsctor:file and return it
+
+|#
