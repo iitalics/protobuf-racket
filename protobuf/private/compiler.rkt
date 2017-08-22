@@ -184,12 +184,33 @@
 
 
 
-(define (compile-root ast)
-  (dsctor:file (ast-loc ast)
-               #f
-               (ast:root-options ast)
-               (ast:root-package ast)
-               '() '() '() '() '()))
+(define (compile-root root-ast)
+  (define pkg (ast:root-package root-ast))
+
+  ;; TODO: dependency set
+
+  (parameterize ([current-scope (if (equal? pkg "")
+                                    ""
+                                    (string-append "." pkg))]
+                 [current-unresolved-descriptors '()]
+                 [current-oneof-fq-name #f])
+
+    ;; first pass
+    (for-each recursive-descent (ast:root-messages root-ast))
+    (for-each recursive-descent (ast:root-enums root-ast))
+
+    (dsctor:file (ast-loc root-ast)
+                 #f
+                 (ast:root-options root-ast)
+                 (ast:root-package root-ast)
+                 ;; TODO: second pass
+                 '() '() ; deps / public-deps
+                 '() ; messages
+                 '() ; enums
+                 (map cdr (current-unresolved-descriptors)))))
+
+
+
 
 
 #|
@@ -213,5 +234,4 @@ dsctor:message-oneofs = (listof dsctor:oneof?)
 
 create finalized descriptors and insert into all-descriptors
 create dsctor:file and return it
-
 |#
