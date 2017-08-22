@@ -119,9 +119,11 @@
                       [Entry.key (hash-ref (all-descriptors) (string-append entry ".key"))]
                       [Entry.value (hash-ref (all-descriptors) (string-append entry ".value"))])
 
+                 (check-true (regexp-match? #px"\\(hidden\\d+\\)\\.test4\\.A\\.MapFieldEntry" entry))
                  (check-pred dsctor:message? Entry <label>)
                  (check-pred dsctor:field? Entry.key <label>)
                  (check-pred dsctor:field? Entry.value <label>)
+                 (check-equal? (dsctor-name Entry) "MapFieldEntry")
                  (check-true (dsctor:field-repeated? field-dsc) <label>)
                  (check-false (dsctor:field-repeated? Entry.key) <label>)
                  (check-false (dsctor:field-repeated? Entry.value) <label>)

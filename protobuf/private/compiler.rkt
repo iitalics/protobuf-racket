@@ -126,6 +126,7 @@
      (add-unresolved!
       (parameterize ([current-scope fq-name])
         (let* ([fields (map recursive-descent field-asts)]
+               [map-fields (map recursive-descent map-field-asts)]
                [oneofs (map recursive-descent oneof-asts)]
                [oneof-fields
                 ;; traverse fields nested in oneofs
@@ -134,7 +135,7 @@
                   (parameterize ([current-oneof-fq-name oo-fq])
                     (map recursive-descent
                          (ast:oneof-fields oo-ast))))]
-               [all-fields (append* fields oneof-fields)]
+               [all-fields (append* fields map-fields oneof-fields)]
                [nested-msgs (map recursive-descent nested-msg-asts)]
                [nested-enums (map recursive-descent nested-enum-asts)])
 
@@ -166,7 +167,24 @@
       (dsctor:oneof loc name '()))]
 
 
-    ;; TODO: map field
+    ;; -[ map-field ]-
+    [(struct ast:map-field (loc name number key-type val-type opts))
+     (let* ([entry-scope (format "(~a)~a" (gensym 'hidden) (current-scope))]
+            [entry-ast
+             ;; construct the AST "sugar" and just feed it directly
+             ;; into recursive-descent
+             (ast:message loc
+                          "MapFieldEntry"
+                          (list (ast:field loc "key" 1 'optional key-type '())
+                                (ast:field loc "value" 2 'optional val-type '()))
+                          '() '() '() '() '()
+                          (list (ast:option loc #f '("map_entry") #t)))]
+
+            [entry (parameterize ([current-scope entry-scope])
+                     (recursive-descent entry-ast))])
+
+       (add-unresolved!
+        (dsctor:field loc name opts entry number #t #f)))]
 
 
     ;; -[ enum ]-
