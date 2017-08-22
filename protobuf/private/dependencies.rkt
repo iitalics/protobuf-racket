@@ -44,20 +44,26 @@
                (simple-form-path full))))))
 
 
-;; parse+dependencies : (listof path-string?) -> (listof ast:file?)
-;;   parses .proto files from the given paths, and all files referenced
-;;   by those paths. returns the parsed ASTs in the correct dependency order
-;;   such that no AST depends on one that appears before it.
-;;   the exact order is unspecified for paths which do not depend on eachother.
+;; parses .proto files from the given paths, and all files referenced
+;; by those paths. returns two values, the list of ast:root's corresponding
+;; to the given paths, and the complete list of parsed ASTs in the correct
+;; dependency order such that no AST depends on one that appears before it.
+;; the exact order is unspecified for paths which do not depend on eachother.
+;;
+;; ASTs in the first list will also appear in the second, but the second list
+;; may contain ASTs that were indirectly included by the first, but not listed
+;; by the initial paths.
+;;
+;; parse+dependencies : (listof path-string?) -> (listof ast:root?) (listof ast:root?)
 (define (parse+dependencies initial-paths)
 
-  ;; preorders : path? => (listof path?)
-  ;;  specifies a paths that the key depends on
-  ;;  e.g. if (hash-ref preoders p0) = (list p1 p2)
+  ;; orders : path? => (listof path?)
+  ;;  specifies a list of paths that the key depends on
+  ;;  e.g. if (hash-ref orders p0) = (list p1 p2)
   ;;    then p0 requires p1, p2
-  ;;       ; p1 ≤ p0
-  ;;       ; p2 ≤ p0
-  (define preorders (make-hash))
+  ;;         p1 ≤ p0
+  ;;         p2 ≤ p0
+  (define orders (make-hash))
 
   ;; asts : (listof ast:root?)
   (define asts '())
@@ -78,34 +84,51 @@
               (raise-cycle-error resolved-path
                                  (car pending)))]
 
-        [(not (hash-has-key? preorders resolved-path))
+        [(not (hash-has-key? orders resolved-path))
          ; parse the AST and extract the dependencies
          (let* ([root (parse-ast resolved-path)]
                 [dep-paths (parameterize ([current-directory (path-only resolved-path)])
                              (for/list ([imp (in-list (ast:root-imports root))])
                                (traverse-deps (ast:import-path imp)
                                               (cons resolved-path pending))))])
-           ; update preorders and AST list
+           ; update orders and AST list
            (set! asts (cons root asts))
-           (hash-set! preorders resolved-path dep-paths)
+           (hash-set! orders resolved-path dep-paths)
            ; update resolved paths within each import
            (for ([dep-path (in-list dep-paths)]
                  [imp (in-list (ast:root-imports root))])
-             (set-box! (ast:import-resolved-path-box imp) dep-path)))])
+             (set-box! (ast:import-resolved-path-box imp) dep-path))
 
-      resolved-path))
+           resolved-path)]
 
-  (for-each traverse-deps initial-paths)
+        [else resolved-path])))
 
-  ;; evaluate a preorder using reflexivity or transitivity
+  ;; traverse depenendencies
+  (define initial/resolved
+    (map traverse-deps initial-paths))
+
+  ;; maps each initial path to the parsed AST
+  (define initial-asts
+    (map (λ (path)
+           (findf (λ (ast)
+                    (equal? (ast-source-file-path ast)
+                            path))
+                  asts))
+         initial/resolved))
+
+  ;; evaluate a order using reflexivity or transitivity
   (define (dep<=? path1 path2) (dep>=? path2 path1))
   (define (dep>=? path1 path2)
     (or (equal? path1 path2)
         (ormap (λ (p) (dep>=? p path2))
-               (hash-ref preorders path1 '()))))
+               (hash-ref orders path1 '()))))
 
-  ;; sort paths by preorder and return corresponding asts
-  (sort asts dep<=? #:key ast-source-file-path))
+  ;; sort paths by order and return corresponding asts
+  (define sorted-asts
+    (sort asts dep<=? #:key ast-source-file-path))
+
+  (values initial-asts sorted-asts))
+
 
 
 

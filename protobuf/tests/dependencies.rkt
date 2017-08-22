@@ -24,14 +24,14 @@ cycle detected
     (syntax-parser
       [(_ #:input (in-path:str ...)
           #:order (out-path:str ...))
-       #'(check-equal? (map ast-source-file-path
-                            (parse+dependencies (list in-path ...)))
-                       (list (resolve-file out-path) ...))]
+       #'(let-values ([(in-asts sorted-asts)
+                       (parse+dependencies (list in-path ...))])
+           (check-equal? (map ast-source-file-path sorted-asts)
+                         (list (resolve-file out-path) ...)))]
 
       [(_ #:input (in-path:str ...)
           #:error exn?)
-       #'(check-exn exn? (λ ()
-                           (parse+dependencies (list in-path ...))))]))
+       #'(check-exn exn? (λ () (parse+dependencies (list in-path ...))))]))
 
   (parameterize ([extra-proto-paths '("files/deps")])
 
