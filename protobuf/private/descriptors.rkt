@@ -1,5 +1,57 @@
 #lang racket/base
+(require (for-syntax racket/base
+                     racket/syntax))
 
+(provide (struct-out dsctor)
+         dsctor-source-file-path)
+
+
+(struct dsctor (loc name options) #:transparent)
+
+(define (dsctor-source-file-path d)
+  (srcloc-source (dsctor-loc d)))
+
+
+(define-syntax define-descriptor-struct
+  (syntax-rules ()
+    [(_ (name) (fld ...))
+     (begin
+       (provide (struct-out name))
+       (struct name dsctor
+         (fld ...)
+         #:transparent))]))
+
+
+(define-descriptor-struct (dsctor:file)
+  (package
+   deps
+   public-deps
+   messages
+   enums
+   all-types))
+
+(define-descriptor-struct (dsctor:message)
+  (fields
+   oneofs
+   nested-types
+   nested-enums
+   reserved-names
+   reserved-index?))
+
+(define-descriptor-struct (dsctor:field)
+  (type
+   number
+   repeated?
+   oneof))
+
+(define-descriptor-struct (dsctor:oneof)
+  ())
+
+(define-descriptor-struct (dsctor:enum)
+  (values))
+
+(define-descriptor-struct (dsctor:enum-value)
+  (number))
 
 
 #|
