@@ -21,6 +21,10 @@
           (current-continuation-marks)
           (list loc loc))))
 
+(define (shorten-file-path p)
+  (let ([paths (list p (find-relative-path (current-directory) p))])
+    (argmin string-length
+            (map path->string paths))))
 
 
 
@@ -96,8 +100,89 @@
      fq-name]))
 
 
+;; first pass: (recursive decent)
+;;
+;; instantiate skeleton descriptors (as described above)
+;; check for name conflicts
+;; insert (cons AST dsc) into current-unresolved-descriptors
+;;
+;;   dsctor-options = (listof <a st:option>)
+;;   dsctor:message-fields/oneofs = (listof <fq-name>)
+;;   dsctor:message-nested-* = (listof <fq-name>)
+;;   dsctor:message-reserved-* = #f
+;;   dsctor:field-type = <uqname>
+;;
+;; recursive-descent : ast? -> fq-name?
 (define (recursive-descent ast)
-  (error 'unimplemented))
+  (match ast
+
+    ;; -[ message ]-
+    [(struct ast:message (loc name field-asts oneof-asts map-field-asts
+                          nested-msg-asts nested-enum-asts reserved opts))
+
+     (define fq-name (qualify-in-scope name))
+
+     ;; parameterize current-scope before message creates its own scope
+     (add-unresolved!
+      (parameterize ([current-scope fq-name])
+        (let* ([fields (map recursive-descent field-asts)]
+               [oneofs (map recursive-descent oneof-asts)]
+               [oneof-fields
+                ;; traverse fields nested in oneofs
+                (for/list ([oo-fq (in-list oneofs)]
+                           [oo-ast (in-list oneof-asts)])
+                  (parameterize ([current-oneof-fq-name oo-fq])
+                    (map recursive-descent
+                         (ast:oneof-fields oo-ast))))]
+               [all-fields (append* fields oneof-fields)]
+               [nested-msgs (map recursive-descent nested-msg-asts)]
+               [nested-enums (map recursive-descent nested-enum-asts)])
+
+          (dsctor:message loc
+                          name
+                          opts
+                          all-fields
+                          oneofs
+                          nested-msgs
+                          nested-enums
+                          #f #f ; reserved names/indices
+                          ))))]
+
+    ;; -[ field ]-
+    [(struct ast:field (loc name number label type opts))
+     (add-unresolved!
+      (dsctor:field loc
+                    name
+                    opts
+                    type
+                    number
+                    (eq? label 'repeated)
+                    (current-oneof-fq-name)))]
+
+
+    ;; -[ oneof ]-
+    [(struct ast:oneof (loc name field-asts))
+     (add-unresolved!
+      (dsctor:oneof loc name '()))]
+
+
+    ;; TODO: map field
+
+
+    ;; -[ enum ]-
+    [(struct ast:enum (loc name val-asts opts))
+     (let ([vals (map recursive-descent val-asts)])
+       (add-unresolved!
+        (dsctor:enum loc name opts vals)))]
+
+
+    ;; -[ enum-val ]-
+    [(struct ast:enum-val (loc name number opts))
+     (add-unresolved!
+      (dsctor:enum-value loc name opts number))]))
+
+
+
 
 (define (compile-root ast)
   (dsctor:file (ast-loc ast)
@@ -107,21 +192,7 @@
                '() '() '() '() '()))
 
 
-
 #|
--- first pass: (recursive decent)
-
-instantiate skeleton descriptors (as described above)
-check for name conflicts
-insert (cons AST dsc) into current-unresolved-descriptors
-
-dsctor-options = (listof <a st:option>)
-dsctor:message-fields/oneofs = (listof <fq-name>)
-dsctor:message-nested-* = (listof <fq-name>)
-dsctor:message-reserved-* = #f
-dsctor:field-type = <uqname>
-
-
 -- second pass: (iterate current-unresolved-descriptors)
 
 parse options
