@@ -65,6 +65,7 @@
              (check-pred dsctor:enum-value? A.V)
              (check-false (dsctor:field-repeated? A.x))
              (check-equal? (dsctor:field-number A.x) 1)
+             (check-equal? (dsctor:field-type A.x) 'uint32)
              (check-equal? (dsctor:enum-value-number A.V) 0)
              (check-equal? (dsctor:message-nested-enums A) '(".test2.A.E"))
              (check-equal? (dsctor:enum-values A.E) '(".test2.A.V"))
@@ -98,6 +99,40 @@
              (check-true (dsctor:field-repeated? A.x))
              (check-false (dsctor:field-repeated? A.z))
              )))
+
+
+    (check-not-exn
+     (λ () (let* ([r (compile-root/tmp "syntax = 'proto3';"
+                                       "package test4;"
+                                       "message A {"
+                                       "  map<uint32, string> m = 1;"
+                                       "  map<sint32, bytes> q = 2;"
+                                       "}")]
+
+                  [A (hash-ref (all-descriptors) ".test4.A")]
+                  [A.m (hash-ref (all-descriptors) ".test4.A.m")]
+                  [A.q (hash-ref (all-descriptors) ".test4.A.q")])
+
+             (define (entry-tests <label> field-dsc #:key key-ty #:val val-ty)
+               (let* ([entry (dsctor:field-type field-dsc)]
+                      [Entry (hash-ref (all-descriptors) entry)]
+                      [Entry.key (hash-ref (all-descriptors) (string-append entry ".key"))]
+                      [Entry.value (hash-ref (all-descriptors) (string-append entry ".value"))])
+
+                 (check-pred dsctor:message? Entry <label>)
+                 (check-pred dsctor:field? Entry.key <label>)
+                 (check-pred dsctor:field? Entry.value <label>)
+                 (check-true (dsctor:field-repeated? field-dsc) <label>)
+                 (check-false (dsctor:field-repeated? Entry.key) <label>)
+                 (check-false (dsctor:field-repeated? Entry.value) <label>)
+                 (check-equal? (dsctor:field-type Entry.key) key-ty <label>)
+                 (check-equal? (dsctor:field-number Entry.key) 1 <label>)
+                 (check-equal? (dsctor:field-type Entry.value) val-ty <label>)
+                 (check-equal? (dsctor:field-number Entry.value) 2 <label>)))
+
+             (entry-tests "A { map<> m }" A.m #:key 'uint32 #:val 'string)
+             (entry-tests "A { map<> q }" A.q #:key 'sint32 #:val 'bytes)
+             (check-equal? (dsctor:message-fields A) '(".test4.A.m" ".test4.A.q")))))
 
 
     ))
