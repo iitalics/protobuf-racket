@@ -62,7 +62,7 @@
   (make-parameter (make-hash)))
 
 ;; descriptors being compiled that need additional passes
-;; (listof (cons fq-name? dsctor?))
+;; (listof fq-name? dsctor?)
 (define current-unresolved-descriptors
   (make-parameter '()))
 
@@ -95,8 +95,7 @@
     [else
      (hash-set! (all-descriptors) fq-name dsc)
      (current-unresolved-descriptors
-      (cons (cons fq-name dsc)
-            (current-unresolved-descriptors)))
+      (cons fq-name (current-unresolved-descriptors)))
      fq-name]))
 
 
@@ -225,7 +224,8 @@
                  '() '() ; deps / public-deps
                  '() ; messages
                  '() ; enums
-                 (map cdr (current-unresolved-descriptors)))))
+                 (map (λ (fq) (hash-ref (all-descriptors) fq))
+                      (current-unresolved-descriptors)))))
 
 
 
