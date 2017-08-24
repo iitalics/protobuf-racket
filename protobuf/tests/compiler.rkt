@@ -136,5 +136,40 @@
              (entry-tests "A { map<> q }" A.q #:key 'sint32 #:val 'bytes)
              (check-equal? (dsctor:message-fields A) '(".test4.A.m" ".test4.A.q")))))
 
+    (check-not-exn
+     (λ ()
+       (let* ([r (compile-root/tmp "syntax = 'proto3';"
+                                   "package test5;"
+                                   "option java_package = 'com.cadlib.test5';"
+                                   "message Part {"
+                                   "  option deprecated = false;"
+                                   "  enum Shape {"
+                                   "    option allow_alias = true;"
+                                   "    Plane = 0;"
+                                   "    Flat = 0 [deprecated=true];"
+                                   "    Cylinder = 1;"
+                                   "  }"
+                                   "  string name = 1 [ctype=STRING_PIECE];"
+                                   "  repeated Shape shapes = 2 [packed=true];"
+                                   "  map<uint32,float> dimension = 3;"
+                                   "}")])
+
+         (define dim-entry-fq
+           (dsctor:field-type (hash-ref (all-descriptors) ".test5.Part.dimension")))
+
+         (define checks
+           `([".test5.Part"         "deprecated" #f]
+             [".test5.Part.Shape"   "allow_alias" #t]
+             [".test5.Part.Flat"    "deprecated" #t]
+             [".test5.Part.name"    "ctype" STRING_PIECE]
+             [".test5.Part.shapes"  "packed" #t]
+             [,dim-entry-fq         "map_entry" #t]))
+
+         (for ([chk (in-list checks)])
+           (check-equal? (dsctor-option (hash-ref (all-descriptors) (car chk))
+                                        (cadr chk)
+                                        'UNSET)
+                         (caddr chk)
+                         (~a chk))))))
 
     ))
