@@ -339,6 +339,40 @@ nano passes:
            clause ...
            [_ ast]))]))
 
+
+;; changes dsctor-options from a list of ast:options, into
+;; a hash table of valid options to their values
+(define-nano-pass pass/options
+  [(dsctor:message (_ _ opts _ _ _ _ _ _))
+   (define opts+
+     (compile-options opts
+                      '(["message_set_wire_format" bool]
+                        ["no_standard_descriptor_accessor" bool]
+                        ["map_entry" bool])))
+   => (_ _ opts+ _ _ _ _ _ _)]
+
+  [(dsctor:field (_ _ opts _ _ _ _))
+   (define opts+
+     (compile-options opts
+                      '(["ctype" (STRING CORD STRING_PIECE)]
+                        ["jstype" (JS_NORMAL JS_STRING JS_NUMBER)]
+                        ["packed" bool]
+                        ["lazy" bool])))
+   => (_ _ opts+ _ _ _ _)]
+
+  [(dsctor:enum (_ _ opts _))
+   (define opts+
+     (compile-options opts '(["allow_alias" bool])))
+   => (_ _ opts+ _)]
+
+  [(dsctor:oneof (_ _ opts)) => (_ _ (compile-options opts '()))]
+  [(dsctor:enum-value (_ _ opts _)) => (_ _ (compile-options opts '()) _)])
+
+
+
+
+
+;; compile-root : ast:root? -> dsctor:file?
 (define (compile-root root-ast)
   (define pkg (ast:root-package root-ast))
 
@@ -354,6 +388,16 @@ nano passes:
         (values (map recursive-descent (ast:root-messages root-ast))
                 (map recursive-descent (ast:root-enums root-ast))
                 (current-unresolved-descriptors))))
+
+    (for ([pass (list pass/options
+                      ;; TODO: more nano passes
+                      )])
+      (hash-union!
+       (all-descriptors) #:combine (λ (a b) b)
+       (for/hash ([fq (in-list all-unresolved-fqs)])
+         (values fq
+                 (pass (hash-ref (all-descriptors) fq))))))
+
 
     (define (get-dsc fq) (hash-ref (all-descriptors) fq))
 
@@ -371,20 +415,8 @@ nano passes:
 
 
 
+
 #|
--- second pass: (iterate current-unresolved-descriptors)
-
-parse options
-parse reserved fields, check against in-use names
-check for duplicate field/value numbers
-resolve types
-
-dsctor-options = (hash string? => any)
-dsctor:reserved-names = (setof string?)
-dsctor:reserved-index? = (-> integer? boolean?)
-dsctor:field-type = <fq-name>
-
-
 -- third pass: (iterate current-unresolved-descriptors)
 
 dsctor:message-fields = (listof dsctor:field?)
