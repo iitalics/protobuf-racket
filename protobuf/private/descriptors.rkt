@@ -18,7 +18,8 @@
        (provide (struct-out name))
        (struct name dsctor
          (fld ...)
-         #:transparent))]))
+         #:transparent
+         #:mutable))]))
 
 
 (define-descriptor-struct (dsctor:file)

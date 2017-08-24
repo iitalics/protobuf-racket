@@ -527,6 +527,31 @@
       this-dsc])])
 
 
+;; substitute fq-names for the descriptors themselves.
+;; NOTE: does mutable transformations, since we need
+;; to be able to handle cycles.
+(define-nano-pass pass/substitute-names 5
+  [(dsctor:message (_ _ _ fields oneofs msgs enums _ _))
+   (set-dsctor:message-fields! this-dsc (map get-dsc fields))
+   (set-dsctor:message-oneofs! this-dsc (map get-dsc oneofs))
+   (set-dsctor:message-nested-types! this-dsc (map get-dsc msgs))
+   (set-dsctor:message-nested-enums! this-dsc (map get-dsc enums))
+   this-dsc]
+
+  [(dsctor:field (_ _ _ type _ _ oneof))
+   (when (string? type)
+     (set-dsctor:field-type! this-dsc (get-dsc type)))
+   (when oneof
+     (set-dsctor:field-oneof! this-dsc (get-dsc oneof)))
+   this-dsc]
+
+  [(dsctor:enum (_ _ _ vals))
+   (set-dsctor:enum-values! this-dsc (map get-dsc vals))
+   this-dsc])
+
+
+
+
 
 ;; compile-root : ast:root? -> dsctor:file?
 (define (compile-root root-ast)
