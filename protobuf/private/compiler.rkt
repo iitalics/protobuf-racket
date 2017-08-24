@@ -118,10 +118,11 @@
 ;; check for name conflicts
 ;; insert (cons AST dsc) into current-unresolved-descriptors
 ;;
-;;   dsctor-options = (listof <a st:option>)
+;;   dsctor-options = (listof <ast:option>)
 ;;   dsctor:message-fields/oneofs = (listof <fq-name>)
 ;;   dsctor:message-nested-* = (listof <fq-name>)
-;;   dsctor:message-reserved-* = #f
+;;   dsctor:message-reserved-names = (listof <string>)
+;;   dsctor:message-reserved-index? = (listof <int/range>)
 ;;   dsctor:field-type = <uqname>
 ;;
 ;; recursive-descent : ast? -> fq-name?
@@ -158,8 +159,8 @@
                           oneofs
                           nested-msgs
                           nested-enums
-                          #f #f ; reserved names/indices
-                          ))))]
+                          (filter string? reserved)
+                          (filter (negate string?) reserved)))))]
 
     ;; -[ field ]-
     [(struct ast:field (loc name number label type opts))
@@ -290,8 +291,8 @@
 
 #|
 nano passes:
-- (all) options
-- (message) reserved fields
++ (all) options
++ (message) reserved fields
 - (message) field numbers (aliasing)
 - (field) type resolution
 - (enum) value numbers (aliasing)
@@ -381,6 +382,40 @@ nano passes:
 
   [(dsctor:oneof (_ _ opts)) => (_ _ (compile-options opts '()))]
   [(dsctor:enum-value (_ _ opts _)) => (_ _ (compile-options opts '()) _)])
+
+
+
+;; compiles list of reserved names and ranges, updating
+;; dsctor:message-reserved-index? to be a single predicate
+;; function (exact-integer? -> bool?) that returns #t for
+;; indices that are reserved
+(define-nano-pass pass/reserved-fields 2
+  [(dsctor:message (loc _ _ _ _ _ _ rsv-names rsv-idxs))
+
+   (cond
+     [(check-duplicates rsv-names)
+      => (λ (duplicate)
+           (raise-compile-error loc
+                                "field name ~v reserved more than once"
+                                duplicate))]
+
+     [(check-duplicates rsv-idxs eq?)
+      => (λ (duplicate)
+           (raise-compile-error loc
+                                "index ~a reserved more than once"
+                                duplicate))])
+
+   (define (rsv-idx? i)
+     (for/or ([rng (in-list rsv-idxs)])
+       (cond
+         [(exact-integer? rng) (= rng i)]
+         [(eq? (ast:range-max rng) 'max)
+          (<= (ast:range-min rng) i)]
+         [else
+          (<= (ast:range-min rng) i (ast:range-max rng))])))
+
+   => (_ _ _ _ _ _ _ rsv-names rsv-idx?)])
+
 
 
 
