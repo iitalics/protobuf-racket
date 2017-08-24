@@ -323,9 +323,6 @@ nano passes:
 ;; creating a struct with the same type as matched in the beginning
 ;; of the clause. _'s are substituted for the original arguments of
 ;; the matched struct.
-(begin-for-syntax
-  (define nano-passes '()))
-
 (define-syntax define-nano-pass
   (syntax-parser
     [(_ fn-name:id order:nat
@@ -361,6 +358,9 @@ nano passes:
          (match ast
            clause ...
            [_ ast]))]))
+
+(begin-for-syntax
+  (define nano-passes '()))
 
 (define-syntax nano-passes
   (syntax-parser
