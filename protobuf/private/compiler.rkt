@@ -307,9 +307,12 @@ nano passes:
 ;; creating a struct with the same type as matched in the beginning
 ;; of the clause. _'s are substituted for the original arguments of
 ;; the matched struct.
+(begin-for-syntax
+  (define nano-passes '()))
+
 (define-syntax define-nano-pass
   (syntax-parser
-    [(_ fn-name:id
+    [(_ fn-name:id order:nat
         [(strct:id (pat ...))
          body ...] ...)
 
@@ -334,15 +337,26 @@ nano passes:
           #'[(struct strct (pat ...))
              body ...]]))
 
+     #:do [(set! nano-passes
+                 (cons (cons (syntax-e #'order) #'fn-name)
+                       nano-passes))]
+
      #'(define (fn-name ast)
          (match ast
            clause ...
            [_ ast]))]))
 
+(define-syntax nano-passes
+  (syntax-parser
+    [(_)
+     #:with ((_ . fn) ...) (sort nano-passes < #:key car)
+     #'(list fn ...)]))
+
+
 
 ;; changes dsctor-options from a list of ast:options, into
 ;; a hash table of valid options to their values
-(define-nano-pass pass/options
+(define-nano-pass pass/options 1
   [(dsctor:message (_ _ opts _ _ _ _ _ _))
    (define opts+
      (compile-options opts
@@ -389,15 +403,14 @@ nano passes:
                 (map recursive-descent (ast:root-enums root-ast))
                 (current-unresolved-descriptors))))
 
-    (for ([pass (list pass/options
-                      ;; TODO: more nano passes
-                      )])
+    (for ([pass-fn (in-list (nano-passes))])
       (hash-union!
        (all-descriptors) #:combine (λ (a b) b)
-       (for/hash ([fq (in-list all-unresolved-fqs)])
-         (values fq
-                 (pass (hash-ref (all-descriptors) fq))))))
-
+       (for*/hash ([fq (in-list all-unresolved-fqs)]
+                   [dsc (in-value (hash-ref (all-descriptors) fq))]
+                   [dsc+ (in-value (pass-fn dsc))]
+                   #:when (not (eq? dsc dsc+)))
+         (values fq dsc+))))
 
     (define (get-dsc fq) (hash-ref (all-descriptors) fq))
 
