@@ -228,4 +228,22 @@
                          (cadr chk)
                          (~a chk))))))
 
+    (check-exn
+     (λ (e) (regexp-match? #px"cannot find type \"E\" in scope \".test8.A.B.C\""
+                           (exn-message e)))
+     (λ ()
+       (compile-root/tmp "syntax = 'proto3';"
+                         "package test8;"
+                         "message A {"
+                         "  message B {"
+                         "    message C {"
+                         "      E e = 1;"
+                         "    }"
+                         "    message D {"
+                         "      enum E { V = 0; }"
+                         "    }"
+                         "  }"
+                         "}")))
+
+
     ))
