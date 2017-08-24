@@ -192,4 +192,40 @@
            (check-false (dsctor:message-tag-reserved? msg tg) (format "no: ~a" tg))))))
 
 
+    (check-not-exn
+     (λ ()
+       (let* ([r (compile-root/tmp "syntax = 'proto3';"
+                                   "package test7;"
+                                   "message A {"
+                                   "  enum B { X = 0; }"
+                                   "  uint32 f1 = 1;"
+                                   "  A f2 = 2;"
+                                   "  B f3 = 3;"
+                                   "  A.B f4 = 4;"
+                                   "  test7.B f5 = 5;"
+                                   "  .test7.B f6 = 6;"
+                                   "  .test7.B.A f7 = 7;"
+                                   "  map<string,B> f8 = 8;"
+                                   "}"
+                                   "message B { enum A { Y = 0; } }")])
+         (define f8-entry
+           (dsctor:field-type (hash-ref (all-descriptors) ".test7.A.f8")))
+         (define f8-entry-val
+           (string-append f8-entry ".value"))
+
+         (define checks
+           `([".test7.A.f1"   uint32]
+             [".test7.A.f2"   ".test7.A"]
+             [".test7.A.f3"   ".test7.A.B"]
+             [".test7.A.f4"   ".test7.A.B"]
+             [".test7.A.f5"   ".test7.B"]
+             [".test7.A.f6"   ".test7.B"]
+             [".test7.A.f7"   ".test7.B.A"]
+             [,f8-entry-val   ".test7.A.B"]))
+
+         (for ([chk (in-list checks)])
+           (check-equal? (dsctor:field-type (hash-ref (all-descriptors) (car chk)))
+                         (cadr chk)
+                         (~a chk))))))
+
     ))
