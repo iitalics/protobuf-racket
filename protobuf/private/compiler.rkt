@@ -136,7 +136,11 @@
 
      (define fq-name (qualify-in-scope name))
 
-     ;; parameterize current-scope before message creates its own scope
+     ;; parameterize current-scope, because fields etc. need to be in
+     ;; a sub scope of the message
+     ;;  e.g. message A { message B {}  uint32 x = 1; }
+     ;;  descriptors:
+     ;;     A, A.B, A.x
      (add-unresolved!
       (parameterize ([current-scope fq-name])
         (let* ([fields (map recursive-descent field-asts)]
@@ -183,22 +187,32 @@
 
     ;; -[ map-field ]-
     [(struct ast:map-field (loc name number key-type val-type opts))
-     (let* ([entry-scope (format "(~a)~a" (gensym 'hidden) (current-scope))]
-            [entry-ast
-             ;; construct the AST "sugar" and just feed it directly
-             ;; into recursive-descent
-             (ast:message loc
-                          "MapFieldEntry"
-                          (list (ast:field loc "key" 1 'optional key-type '())
-                                (ast:field loc "value" 2 'optional val-type '()))
-                          '() '() '() '() '()
-                          (list (ast:option loc #f '("map_entry") #t)))]
 
-            [entry (parameterize ([current-scope entry-scope])
-                     (recursive-descent entry-ast))])
+     (define outer-scope (current-scope))
+     (define hidden-scope (format "(~a)~a" (gensym 'hidden) (current-scope)))
 
+     ;; create "key" and "value" fields.
+     ;; note that they use outer-scope to resolve types, not the hidden
+     ;; scope that we're putting the MapFieldEntry into
+     (parameterize ([current-scope (qualify-in-scope "MapFieldEntry" hidden-scope)])
        (add-unresolved!
-        (dsctor:field loc name opts entry number #t #f)))]
+        (dsctor:field loc "key" '() (cons key-type outer-scope) 1 #f #f))
+       (add-unresolved!
+        (dsctor:field loc "value" '() (cons val-type outer-scope) 2 #f #f)))
+
+     ;; create the entry type
+     (define entry
+       (parameterize ([current-scope hidden-scope])
+         (add-unresolved!
+          (dsctor:message loc
+                          "MapFieldEntry"
+                          (list (ast:option loc #f '("map_entry") #t))
+                          (list (string-append hidden-scope ".MapFieldEntry.key")
+                                (string-append hidden-scope ".MapFieldEntry.value"))
+                          '() '() '() '() '()))))
+
+     (add-unresolved!
+      (dsctor:field loc name opts entry number #t #f))]
 
 
     ;; -[ enum ]-
