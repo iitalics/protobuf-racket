@@ -4,6 +4,7 @@
          "descriptors.rkt"
          racket/hash
          racket/generator
+         racket/stxparam
          (for-syntax racket/base
                      (only-in racket/sequence in-syntax)
                      syntax/stx
@@ -355,12 +356,16 @@ nano passes:
                        nano-passes))]
 
      #'(define (fn-name dsc)
-         (match dsc
-           clause ...
-           [_ dsc]))]))
+         (syntax-parameterize ([this-dsc (make-rename-transformer #'dsc)])
+           (match dsc
+             clause ...
+             [_ dsc])))]))
 
 (begin-for-syntax
   (define nano-passes '()))
+
+(define-syntax-parameter this-dsc
+  #f)
 
 (define-syntax nano-passes
   (syntax-parser
