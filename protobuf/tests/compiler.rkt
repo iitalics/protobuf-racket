@@ -67,8 +67,8 @@
              (check-equal? (dsctor:field-number A.x) 1)
              (check-equal? (dsctor:field-type A.x) 'uint32)
              (check-equal? (dsctor:enum-value-number A.V) 0)
-             (check-equal? (dsctor:message-nested-enums A) '(".test2.A.E"))
-             (check-equal? (dsctor:enum-values A.E) '(".test2.A.V"))
+             (check-equal? (dsctor:message-nested-enums A) (list A.E))
+             (check-equal? (dsctor:enum-values A.E) (list A.V))
              )))
 
 
@@ -92,10 +92,10 @@
              (check-pred dsctor:message? A)
              (check-pred dsctor:field? A.x)
              (check-pred dsctor:oneof? A.O)
-             (check-equal? (dsctor:message-fields A) '(".test3.A.x" ".test3.A.y" ".test3.A.z"))
+             (check-equal? (dsctor:message-fields A) (list A.x A.y A.z))
              (check-equal? (dsctor:field-oneof A.x) #f)
-             (check-equal? (dsctor:field-oneof A.y) ".test3.A.O")
-             (check-equal? (dsctor:field-oneof A.z) ".test3.A.O")
+             (check-equal? (dsctor:field-oneof A.y) A.O)
+             (check-equal? (dsctor:field-oneof A.z) A.O)
              (check-true (dsctor:field-repeated? A.x))
              (check-false (dsctor:field-repeated? A.z))
              )))
@@ -114,12 +114,10 @@
                   [A.q (hash-ref (all-descriptors) ".test4.A.q")])
 
              (define (entry-tests <label> field-dsc #:key key-ty #:val val-ty)
-               (let* ([entry (dsctor:field-type field-dsc)]
-                      [Entry (hash-ref (all-descriptors) entry)]
-                      [Entry.key (hash-ref (all-descriptors) (string-append entry ".key"))]
-                      [Entry.value (hash-ref (all-descriptors) (string-append entry ".value"))])
+               (let* ([Entry (dsctor:field-type field-dsc)]
+                      [Entry.key (first (dsctor:message-fields Entry))]
+                      [Entry.value (second (dsctor:message-fields Entry))])
 
-                 (check-true (regexp-match? #px"\\(hidden\\d+\\)\\.test4\\.A\\.MapFieldEntry" entry))
                  (check-pred dsctor:message? Entry <label>)
                  (check-pred dsctor:field? Entry.key <label>)
                  (check-pred dsctor:field? Entry.value <label>)
@@ -134,7 +132,7 @@
 
              (entry-tests "A { map<> m }" A.m #:key 'uint32 #:val 'string)
              (entry-tests "A { map<> q }" A.q #:key 'sint32 #:val 'bytes)
-             (check-equal? (dsctor:message-fields A) '(".test4.A.m" ".test4.A.q")))))
+             (check-equal? (dsctor:message-fields A) (list A.m A.q)))))
 
 
     (check-not-exn
@@ -155,23 +153,24 @@
                                    "  map<uint32,float> dimension = 3;"
                                    "}")])
 
-         (define dim-entry-fq
-           (dsctor:field-type (hash-ref (all-descriptors) ".test5.Part.dimension")))
-
          (define checks
            `([".test5.Part"         "deprecated" #f]
              [".test5.Part.Shape"   "allow_alias" #t]
              [".test5.Part.Flat"    "deprecated" #t]
              [".test5.Part.name"    "ctype" STRING_PIECE]
-             [".test5.Part.shapes"  "packed" #t]
-             [,dim-entry-fq         "map_entry" #t]))
+             [".test5.Part.shapes"  "packed" #t]))
 
          (for ([chk (in-list checks)])
            (check-equal? (dsctor-option (hash-ref (all-descriptors) (car chk))
                                         (cadr chk)
                                         'UNSET)
                          (caddr chk)
-                         (~a chk))))))
+                         (~a chk)))
+
+         (define dim.Entry
+           (dsctor:field-type (hash-ref (all-descriptors) ".test5.Part.dimension")))
+         (check-true (dsctor-option dim.Entry "map_entry" #f)))))
+
 
     (check-not-exn
      (λ ()
@@ -208,25 +207,28 @@
                                    "  map<string,B> f8 = 8;"
                                    "}"
                                    "message B { enum A { Y = 0; } }")])
-         (define f8-entry
-           (dsctor:field-type (hash-ref (all-descriptors) ".test7.A.f8")))
-         (define f8-entry-val
-           (string-append f8-entry ".value"))
 
          (define checks
-           `([".test7.A.f1"   uint32]
-             [".test7.A.f2"   ".test7.A"]
+           '([".test7.A.f2"   ".test7.A"]
              [".test7.A.f3"   ".test7.A.B"]
              [".test7.A.f4"   ".test7.A.B"]
              [".test7.A.f5"   ".test7.B"]
              [".test7.A.f6"   ".test7.B"]
-             [".test7.A.f7"   ".test7.B.A"]
-             [,f8-entry-val   ".test7.A.B"]))
+             [".test7.A.f7"   ".test7.B.A"]))
 
          (for ([chk (in-list checks)])
            (check-equal? (dsctor:field-type (hash-ref (all-descriptors) (car chk)))
-                         (cadr chk)
-                         (~a chk))))))
+                         (hash-ref (all-descriptors) (cadr chk))
+                         (~a chk)))
+
+         (define f8.Entry
+           (dsctor:field-type (hash-ref (all-descriptors) ".test7.A.f8")))
+         (define f8.Entry.value
+           (second (dsctor:message-fields f8.Entry)))
+
+         (check-equal? (dsctor:field-type f8.Entry.value)
+                       (hash-ref (all-descriptors) ".test7.A.B")))))
+
 
     (check-exn
      (λ (e) (regexp-match? #px"cannot find type \"E\" in scope \".test8.A.B.C\""
