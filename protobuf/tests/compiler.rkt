@@ -136,6 +136,7 @@
              (entry-tests "A { map<> q }" A.q #:key 'sint32 #:val 'bytes)
              (check-equal? (dsctor:message-fields A) '(".test4.A.m" ".test4.A.q")))))
 
+
     (check-not-exn
      (λ ()
        (let* ([r (compile-root/tmp "syntax = 'proto3';"
@@ -171,5 +172,24 @@
                                         'UNSET)
                          (caddr chk)
                          (~a chk))))))
+
+    (check-not-exn
+     (λ ()
+       (let* ([r (compile-root/tmp "syntax = 'proto3';"
+                                   "package test6;"
+                                   "message Reservations {"
+                                   "  reserved 1, 2, 4 to 8, 15 to max;"
+                                   "  reserved 'a', 'b';"
+                                   "}")])
+
+         (define msg (hash-ref (all-descriptors) ".test6.Reservations"))
+         (define yes '(1 2 4 5 6 7 8 15 16 17 30 70 999 "a" "b"))
+         (define no '(3 9 10 11 12 13 14 "c" "d"))
+
+         (for ([tg (in-list yes)])
+           (check-true (dsctor:message-tag-reserved? msg tg) (format "yes: ~a" tg)))
+         (for ([tg (in-list no)])
+           (check-false (dsctor:message-tag-reserved? msg tg) (format "no: ~a" tg))))))
+
 
     ))

@@ -4,7 +4,8 @@
 
 (provide (struct-out dsctor)
          dsctor-source-file-path
-         dsctor-option)
+         dsctor-option
+         dsctor:message-tag-reserved?)
 
 
 (struct dsctor (loc name options) #:transparent)
@@ -34,7 +35,7 @@
    nested-types
    nested-enums
    reserved-names
-   reserved-index?))
+   reserved-numbers))
 
 (define-descriptor-struct (dsctor:field)
   (type
@@ -55,10 +56,28 @@
 (define (dsctor-source-file-path d)
   (srcloc-source (dsctor-loc d)))
 
+
+;; dsctor-option : dsctor? string? T -> T
 (define (dsctor-option d key default)
   (if (hash? (dsctor-options d))
       (hash-ref (dsctor-options d) key (λ () default))
       default))
+
+
+;; dsctor:message-tag-reserved? : dsctor:message? (or/c integer? string?) -> bool?
+(define (dsctor:message-tag-reserved? d tg)
+  (cond
+    [(string? tg)
+     (and (dsctor:message-reserved-names d)
+          (member tg (dsctor:message-reserved-names d))
+          #t)]
+
+    [(exact-integer? tg)
+     (and (procedure? (dsctor:message-reserved-numbers d))
+          ((dsctor:message-reserved-numbers d) tg))]
+
+    [else #f]))
+
 
 #|
 (define-simple-class options% object%
