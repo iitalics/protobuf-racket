@@ -1,7 +1,12 @@
 #lang racket
 (require "ast.rkt"
          "dependencies.rkt"
-         "descriptors.rkt")
+         "descriptors.rkt"
+         racket/hash
+         (for-syntax racket/base
+                     (only-in racket/sequence in-syntax)
+                     syntax/stx
+                     syntax/parse))
 
 (provide (struct-out exn:fail:compile)
          fq-name?
@@ -9,6 +14,14 @@
          all-descriptors
          recursive-descent
          compile-root)
+
+
+;;; once this module works, it needs to be split into smaller sub-modules
+;;; i'm considering
+;;; compiler/base.rkt         exceptions, parameters, scope utilities
+;;; compiler/macros.rkt       macros like define-nano-pass, etc.
+;;; compiler/compiler.rkt     compiler function implementations
+
 
 
 ;; compiler-specific exception type
@@ -273,6 +286,58 @@
 (define (invalid-option-value ast)
   (invalid-option ast "invalid value for option"))
 
+
+
+#|
+nano passes:
+- (all) options
+- (message) reserved fields
+- (message) field numbers (aliasing)
+- (field) type resolution
+- (enum) value numbers (aliasing)
+|#
+
+;; (define-nano-pass pass-name
+;;   [(dsctor:kind (_ _ pattern _ ...))
+;;    body ...
+;;    => (_ _ arg _ ...)]    <- optional syntax
+;;   ...)
+;;
+;; the expressions appearing after => are used as arguments to
+;; creating a struct with the same type as matched in the beginning
+;; of the clause. _'s are substituted for the original arguments of
+;; the matched struct.
+(define-syntax define-nano-pass
+  (syntax-parser
+    [(_ fn-name:id
+        [(strct:id (pat ...))
+         body ...] ...)
+
+     #:with (clause ...)
+     (for/list ([stx (in-syntax #'[(strct (pat ...) (body ...)) ...])])
+       (syntax-parse stx
+         #:datum-literals (=>)
+         ; with the =>
+         [(strct (pat ...) (body ... => (arg ...)))
+          #:with (tmp ...) (generate-temporaries #'[arg ...])
+          #:with ((pat+ arg+) ...)
+                 (stx-map (syntax-parser
+                            [(tmp pat (~datum _)) #'((and pat tmp) tmp)]
+                            [(tmp pat arg)        #'(pat arg)])
+                          #'((tmp pat arg) ...))
+          #'[(struct strct (pat+ ...))
+             body ...
+             (strct arg+ ...)]]
+
+         ; without
+         [(strct (pat ...) (body ...))
+          #'[(struct strct (pat ...))
+             body ...]]))
+
+     #'(define (fn-name ast)
+         (match ast
+           clause ...
+           [_ ast]))]))
 
 (define (compile-root root-ast)
   (define pkg (ast:root-package root-ast))
