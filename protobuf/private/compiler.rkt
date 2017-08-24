@@ -354,10 +354,10 @@ nano passes:
                  (cons (cons (syntax-e #'order) #'fn-name)
                        nano-passes))]
 
-     #'(define (fn-name ast)
-         (match ast
+     #'(define (fn-name dsc)
+         (match dsc
            clause ...
-           [_ ast]))]))
+           [_ dsc]))]))
 
 (begin-for-syntax
   (define nano-passes '()))
