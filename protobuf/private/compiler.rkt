@@ -199,6 +199,79 @@
       (dsctor:enum-value loc name opts number))]))
 
 
+;; given the types for valid options, and a list of ast:options,
+;; return an options hash, or error for any invalid options. invalid
+;; options includes unknown option names, and known options with incorrect
+;; values.
+;;
+;; extensions are currently unsupported.
+;;
+;; compile-options : (listof ast:option) options-spec? -> (hash string? => any)
+;; options-spec? =
+;;   (listof (list string? type-spec?))
+;; type-spec? =
+;;   (or/c 'bool 'string (listof symbol?))
+(define (compile-options asts
+                         options-spec
+                         [default-options-spec
+                           '(["deprecated" bool])])
+
+  ;; check-type : string? any/c -> (or/c 'bad-option 'bad-value 'ok)
+  (define (check-type opt-name opt-val)
+    (cond
+      [(or (assoc opt-name options-spec)
+           (assoc opt-name default-options-spec))
+       =>
+       (λ (ts)
+         (define bad?
+           (or (and (eq? (cadr ts) 'bool)
+                    (not (boolean? opt-val)))
+
+               (and (eq? (cadr ts) 'string)
+                    (not (string? opt-val)))
+
+               (and (list? (cadr ts))
+                    (not (member opt-val (cadr ts))))))
+
+         (if bad? 'bad-value 'ok))]
+
+      [else 'bad-option]))
+
+
+  (for/hash ([ast (in-list asts)])
+
+    (when (or (ast:option-extension ast)
+              (not (= 1 (length (ast:option-names ast)))))
+      (invalid-option ast))
+
+    (case (check-type (car (ast:option-names ast))
+                      (ast:option-value ast))
+
+      [(bad-option) (invalid-option ast)]
+      [(bad-value) (invalid-option-value ast)]
+      [(ok)
+       (values (car (ast:option-names ast))
+               (ast:option-value ast))])))
+
+
+;; invalid-option : ast:option? -> !
+(define (invalid-option ast [msg "invalid option"])
+  (define opt-name-pretty
+    (format "\"~a~a\""
+            (cond
+              [(ast:option-extension ast)
+               => (λ (ext) (format "(~a)" ext))]
+              [else ""])
+            (string-join (ast:option-names ast) ".")))
+
+  (raise-compile-error (ast-loc ast)
+                       "~a ~a"
+                       msg
+                       opt-name-pretty))
+
+;; invalid-option-value : ast:option? -> !
+(define (invalid-option-value ast)
+  (invalid-option ast "invalid value for option"))
 
 
 (define (compile-root root-ast)
@@ -253,3 +326,61 @@ dsctor:message-oneofs = (listof dsctor:oneof?)
 create finalized descriptors and insert into all-descriptors
 create dsctor:file and return it
 |#
+
+
+
+(module+ tests
+  (require rackunit)
+
+  (define L (srcloc #f #f #f #f #f))
+
+  (define-syntax opts-test
+    (syntax-rules ()
+      [(_ opt-expr ... #:spec (spec ...) #:error re-expr)
+       (check-exn
+        (λ (e) (and (exn:fail:compile? e)
+                    (regexp-match? re-expr (exn-message e))))
+        (λ ()
+          (compile-options (list opt-expr ...) '(spec ...))))]
+
+      [(_ opt-expr ... #:spec (spec ...) #:ok hash-expr)
+       (check-not-exn
+        (λ ()
+          (check-equal? (compile-options (list opt-expr ...) '(spec ...))
+                        hash-expr)))]))
+
+
+  (opts-test (ast:option L #f '("map_entry") #t)
+             (ast:option L #f '("java_package") "opt_tests")
+             (ast:option L #f '("optimize_for") 'SPEED)
+             (ast:option L #f '("deprecated") #t)
+             #:spec (["java_package" string]
+                     ["map_entry" bool]
+                     ["optimize_for" (SPEED CODE_SIZE)])
+             #:ok
+             #hash(("map_entry" . #t)
+                   ("deprecated" . #t)
+                   ("java_package" . "opt_tests")
+                   ("optimize_for" . SPEED)))
+
+  (opts-test (ast:option L "some.extension" '() #t)
+             #:spec ()
+             #:error #px"invalid option \"\\(some\\.extension\\)\"")
+
+  (opts-test (ast:option L #f '("cpp_package") "c++ doesn't have packages lol")
+             #:spec ()
+             #:error #px"invalid option \"cpp_package\"")
+
+  (opts-test (ast:option L #f '("go_package") #t)
+             #:spec (["go_package" string])
+             #:error #px"invalid value for option \"go_package\"")
+
+  (opts-test (ast:option L #f '("deprecated") 'maybe?)
+             #:spec (["go_package" string])
+             #:error #px"invalid value for option \"deprecated\"")
+
+  (opts-test (ast:option L #f '("optimize_for") 'SLOWNESS)
+             #:spec (["optimize_for" (SPEED CODE_SIZE)])
+             #:error #px"invalid value for option \"optimize_for\"")
+
+  )
