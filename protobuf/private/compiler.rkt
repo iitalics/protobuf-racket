@@ -124,7 +124,7 @@
 ;;   dsctor:message-nested-* = (listof <fq-name>)
 ;;   dsctor:message-reserved-names = (listof <string>)
 ;;   dsctor:message-reserved-index? = (listof <int/range>)
-;;   dsctor:field-type = <uqname>
+;;   dsctor:field-type = (cons <uqname> <scope>)
 ;;
 ;; recursive-descent : ast? -> fq-name?
 (define (recursive-descent ast)
@@ -169,7 +169,7 @@
       (dsctor:field loc
                     name
                     opts
-                    type
+                    (cons type (current-scope))
                     number
                     (eq? label 'repeated)
                     (current-oneof-fq-name)))]
@@ -294,8 +294,8 @@
 nano passes:
 + (all) options
 + (message) reserved fields
++ (field) type resolution
 - (message) field numbers (aliasing)
-- (field) type resolution
 - (enum) value numbers (aliasing)
 |#
 
@@ -416,6 +416,37 @@ nano passes:
           (<= (ast:range-min rng) i (ast:range-max rng))])))
 
    => (_ _ _ _ _ _ _ rsv-names rsv-idx?)])
+
+
+
+;; resolve field type names into fully qualified names
+(define-nano-pass pass/resolve-types 2
+  [(dsctor:field (loc _ _ (cons type scope) _ _ _))
+   (define type+
+     (cond
+       [(symbol? type) type]
+       [else
+        ;; create list of subscopes to check in order
+        ;; note: in-subscopes returns deep-scope-first
+        ;;         (e.g. ".a.b" => "", ".a", ".a.b")
+        ;;   but since we're accumulating onto a list, it
+        ;;   reverses the order, making the result shallow-scope-first
+        (define type-candidates
+          (if (string-prefix? type ".")
+              (list type)
+              (for/fold ([tcs '()])
+                        ([ss (in-subscopes scope)])
+                (cons (string-append ss "." type) tcs))))
+
+        (or (for/first ([fq (in-list type-candidates)]
+                        #:when (hash-has-key? (all-descriptors) fq))
+              fq)
+            (raise-compile-error loc
+                                 "cannot find type ~v in scope ~v"
+                                 type scope))]))
+
+   => (_ _ _ type+ _ _ _)])
+
 
 
 
