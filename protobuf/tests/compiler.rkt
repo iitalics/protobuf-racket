@@ -270,5 +270,20 @@
        (format "test9 #~a" i)))
 
 
+    (check-not-exn
+     (λ ()
+       (let ([r (compile-root/tmp "syntax = 'proto3';"
+                                  "package test10;"
+                                  "message Tree {"
+                                  "  string value = 1;"
+                                  "  repeated Tree children = 2;"
+                                  "}")])
+
+         (let* ([Tree (hash-ref (all-descriptors) ".test10.Tree")]
+                [Tree.value (hash-ref (all-descriptors) ".test10.Tree.value")]
+                [Tree.children (hash-ref (all-descriptors) ".test10.Tree.children")])
+
+           (check-equal? (dsctor:field-type Tree.children) Tree)
+           (check-equal? (dsctor:message-fields Tree) (list Tree.value Tree.children))))))
 
     ))
