@@ -464,6 +464,20 @@
 ;; is true.
 (define-nano-pass pass/check-aliasing 3
   [(dsctor:message (loc _ _ fields _ _ _ _ _))
+   (for ([fq (in-list fields)])
+     (let ([field-dsc (hash-ref (all-descriptors) fq)])
+
+       (when (dsctor:message-tag-reserved? this-dsc (dsctor-name field-dsc))
+         (raise-compile-error (dsctor-loc field-dsc)
+                              "field name ~v is reserved"
+                              (dsctor-name field-dsc)))
+
+       (when (dsctor:message-tag-reserved? this-dsc (dsctor:field-number field-dsc))
+         (raise-compile-error (dsctor-loc field-dsc)
+                              "field number ~a is reserved"
+                              (dsctor:field-number field-dsc)))))
+
+
    (cond
      [(check-duplicates #:key dsctor:field-number
                         (map (λ (fq) (hash-ref (all-descriptors) fq))
