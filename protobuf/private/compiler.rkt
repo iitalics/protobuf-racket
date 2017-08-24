@@ -467,6 +467,10 @@
    (for ([fq (in-list fields)])
      (let ([field-dsc (hash-ref (all-descriptors) fq)])
 
+       (unless (positive? (dsctor:field-number field-dsc))
+         (raise-compile-error (dsctor-loc field-dsc)
+                              "field numbers must be positive"))
+
        (when (dsctor:message-tag-reserved? this-dsc (dsctor-name field-dsc))
          (raise-compile-error (dsctor-loc field-dsc)
                               "field name ~v is reserved"
@@ -492,7 +496,19 @@
       this-dsc])]
 
 
-  [(dsctor:enum (loc _ _ vals))
+  [(dsctor:enum (loc name _ vals))
+
+   (when (null? vals)
+      (raise-compile-error loc
+                           "enum ~v must have at least one value"
+                           name))
+
+   (let ([first-ev-dsc (hash-ref (all-descriptors) (first vals))])
+     (unless (zero? (dsctor:enum-value-number first-ev-dsc))
+       (raise-compile-error (dsctor-loc first-ev-dsc)
+                            "first enum value must be number 0")))
+
+
    (cond
      [(dsctor-option this-dsc "allow_alias" #f)
       this-dsc]
