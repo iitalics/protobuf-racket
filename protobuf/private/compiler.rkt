@@ -320,7 +320,7 @@
 ;; the matched struct.
 (define-syntax define-nano-pass
   (syntax-parser
-    [(_ fn-name:id order:nat
+    [(_ fn-name:id
         [(strct:id (pat ...))
          body ...] ...)
 
@@ -345,33 +345,20 @@
           #'[(struct strct (pat ...))
              body ...]]))
 
-     #:do [(set! nano-passes
-                 (cons (cons (syntax-e #'order) #'fn-name)
-                       nano-passes))]
-
      #'(define (fn-name dsc)
          (syntax-parameterize ([this-dsc (make-rename-transformer #'dsc)])
            (match dsc
              clause ...
              [_ dsc])))]))
 
-(begin-for-syntax
-  (define nano-passes '()))
-
 (define-syntax-parameter this-dsc
   #f)
-
-(define-syntax nano-passes
-  (syntax-parser
-    [(_)
-     #:with ((_ . fn) ...) (sort nano-passes < #:key car)
-     #'(list fn ...)]))
 
 
 
 ;; changes dsctor-options from a list of ast:options, into
 ;; a hash table of valid options to their values
-(define-nano-pass pass/options 1
+(define-nano-pass pass/options
   [(dsctor:message (_ _ opts _ _ _ _ _ _))
    (define opts+
      (compile-options opts
@@ -403,7 +390,7 @@
 ;; dsctor:message-reserved-index? to be a single predicate
 ;; function (exact-integer? -> bool?) that returns #t for
 ;; indices that are reserved
-(define-nano-pass pass/reserved-fields 2
+(define-nano-pass pass/reserved-fields
   [(dsctor:message (loc _ _ _ _ _ _ rsv-names rsv-idxs))
 
    (cond
@@ -433,7 +420,7 @@
 
 
 ;; resolve field type names into fully qualified names
-(define-nano-pass pass/resolve-types 2
+(define-nano-pass pass/resolve-types
   [(dsctor:field (loc _ _ (cons type scope) _ _ _))
    (define type+
      (cond
@@ -465,11 +452,11 @@
 ;; check for attempted aliasing (multiple fields/values
 ;; use the same number), and disallow it unless "allow_alias"
 ;; is true.
-(define-nano-pass pass/check-aliasing 3
+(define-nano-pass pass/check-aliasing
   [(dsctor:message (loc _ _ fields _ _ _ _ _))
+   ;; iterate and check fields
    (for ([fq (in-list fields)])
      (let ([field-dsc (get-dsc fq)])
-
        (unless (positive? (dsctor:field-number field-dsc))
          (raise-compile-error (dsctor-loc field-dsc)
                               "field numbers must be positive"))
@@ -484,7 +471,7 @@
                               "field number ~a is reserved"
                               (dsctor:field-number field-dsc)))))
 
-
+   ;; check duplicate numbers (aliasing)
    (cond
      [(check-duplicates #:key dsctor:field-number
                         (map get-dsc (reverse fields)))
@@ -499,18 +486,19 @@
 
 
   [(dsctor:enum (loc name _ vals))
-
+   ;; no values?
    (when (null? vals)
       (raise-compile-error loc
                            "enum ~v must have at least one value"
                            name))
 
+   ;; first value must be number 0 (lazy protobuf spec lol)
    (let ([first-ev-dsc (get-dsc (first vals))])
      (unless (zero? (dsctor:enum-value-number first-ev-dsc))
        (raise-compile-error (dsctor-loc first-ev-dsc)
                             "first enum value must be number 0")))
 
-
+   ;; check duplicates, unless "allow_alias" is true
    (cond
      [(dsctor-option this-dsc "allow_alias" #f)
       this-dsc]
@@ -530,7 +518,7 @@
 ;; substitute fq-names for the descriptors themselves.
 ;; NOTE: does mutable transformations, since we need
 ;; to be able to handle cycles.
-(define-nano-pass pass/substitute-names 5
+(define-nano-pass pass/substitute-names
   [(dsctor:message (_ _ _ fields oneofs msgs enums _ _))
    (set-dsctor:message-fields! this-dsc (map get-dsc fields))
    (set-dsctor:message-oneofs! this-dsc (map get-dsc oneofs))
@@ -548,6 +536,15 @@
   [(dsctor:enum (_ _ _ vals))
    (set-dsctor:enum-values! this-dsc (map get-dsc vals))
    this-dsc])
+
+
+
+(define descriptor-nano-passes
+  (list pass/options
+        (compose pass/reserved-fields
+                 pass/resolve-types)
+        pass/check-aliasing
+        pass/substitute-names))
 
 
 
@@ -570,7 +567,7 @@
                 (map recursive-descent (ast:root-enums root-ast))
                 (current-unresolved-descriptors))))
 
-    (for ([pass-fn (in-list (nano-passes))])
+    (for ([pass-fn (in-list descriptor-nano-passes)])
       (hash-union!
        (all-descriptors) #:combine (λ (a b) b)
        (for*/hash ([fq (in-list all-unresolved-fqs)]
