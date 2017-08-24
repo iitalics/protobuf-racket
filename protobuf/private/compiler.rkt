@@ -76,6 +76,9 @@
 (define all-descriptors
   (make-parameter (make-hash)))
 
+(define (get-dsc fq)
+  (hash-ref (all-descriptors) fq))
+
 ;; descriptors being compiled that need additional passes
 ;; (listof fq-name? dsctor?)
 (define current-unresolved-descriptors
@@ -465,7 +468,7 @@
 (define-nano-pass pass/check-aliasing 3
   [(dsctor:message (loc _ _ fields _ _ _ _ _))
    (for ([fq (in-list fields)])
-     (let ([field-dsc (hash-ref (all-descriptors) fq)])
+     (let ([field-dsc (get-dsc fq)])
 
        (unless (positive? (dsctor:field-number field-dsc))
          (raise-compile-error (dsctor-loc field-dsc)
@@ -484,8 +487,7 @@
 
    (cond
      [(check-duplicates #:key dsctor:field-number
-                        (map (λ (fq) (hash-ref (all-descriptors) fq))
-                             (reverse fields)))
+                        (map get-dsc (reverse fields)))
       =>
       (λ (field-dsc)
         (raise-compile-error (dsctor-loc field-dsc)
@@ -503,7 +505,7 @@
                            "enum ~v must have at least one value"
                            name))
 
-   (let ([first-ev-dsc (hash-ref (all-descriptors) (first vals))])
+   (let ([first-ev-dsc (get-dsc (first vals))])
      (unless (zero? (dsctor:enum-value-number first-ev-dsc))
        (raise-compile-error (dsctor-loc first-ev-dsc)
                             "first enum value must be number 0")))
@@ -514,8 +516,7 @@
       this-dsc]
 
      [(check-duplicates #:key dsctor:enum-value-number
-                        (map (λ (fq) (hash-ref (all-descriptors) fq))
-                             (reverse vals)))
+                        (map get-dsc (reverse vals)))
       =>
       (λ (ev-dsc)
         (raise-compile-error (dsctor-loc ev-dsc)
@@ -543,9 +544,6 @@
         (values (map recursive-descent (ast:root-messages root-ast))
                 (map recursive-descent (ast:root-enums root-ast))
                 (current-unresolved-descriptors))))
-
-    (define (get-dsc fq)
-      (hash-ref (all-descriptors) fq))
 
     (for ([pass-fn (in-list (nano-passes))])
       (hash-union!
