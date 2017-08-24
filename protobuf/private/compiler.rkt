@@ -3,6 +3,7 @@
          "dependencies.rkt"
          "descriptors.rkt"
          racket/hash
+         racket/generator
          (for-syntax racket/base
                      (only-in racket/sequence in-syntax)
                      syntax/stx
@@ -56,15 +57,15 @@
   (string-append scope "." name))
 
 ;; break scope into subscopes, e.g.
-;;   (in-subscopes ".a.b.c") => ".a", ".a.b", ".a.b.c"
+;;   (in-subscopes ".a.b.c") => "", ".a", ".a.b", ".a.b.c"
 ;;
 ;; in-subscopes : string? -> (sequenceof string?)
 (define (in-subscopes scope)
-  (in-sequences (for/stream ([c (in-string scope 1)]
-                             [i (in-naturals 1)]
-                             #:when (char=? #\. c))
-                  (substring scope 0 i))
-                (in-value scope)))
+  (in-generator (for ([c (in-string scope)]
+                      [i (in-naturals)]
+                      #:when (char=? #\. c))
+                  (yield (substring scope 0 i)))
+                (yield scope)))
 
 
 ;; descriptors that are finished being compiled
@@ -478,6 +479,15 @@ create dsctor:file and return it
 
 (module+ tests
   (require rackunit)
+
+
+  (check-equal? (sequence->list (in-subscopes ".a.b.c"))
+                '("" ".a" ".a.b" ".a.b.c"))
+
+  (check-equal? (sequence->list (in-subscopes ""))
+                '(""))
+
+
 
   (define L (srcloc #f #f #f #f #f))
 
