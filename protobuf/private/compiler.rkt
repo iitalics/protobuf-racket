@@ -282,12 +282,15 @@
   (parameterize ([current-scope (if (equal? pkg "")
                                     ""
                                     (string-append "." pkg))]
-                 [current-unresolved-descriptors '()]
                  [current-oneof-fq-name #f])
 
-    ;; first pass
-    (for-each recursive-descent (ast:root-messages root-ast))
-    (for-each recursive-descent (ast:root-enums root-ast))
+    (define-values (root-msg-fqs root-enum-fqs all-unresolved-fqs)
+      (parameterize ([current-unresolved-descriptors '()])
+        (values (map recursive-descent (ast:root-messages root-ast))
+                (map recursive-descent (ast:root-enums root-ast))
+                (current-unresolved-descriptors))))
+
+    (define (get-dsc fq) (hash-ref (all-descriptors) fq))
 
     (dsctor:file (ast-loc root-ast)
                  #f
@@ -295,10 +298,9 @@
                  (ast:root-package root-ast)
                  ;; TODO: second pass
                  '() '() ; deps / public-deps
-                 '() ; messages
-                 '() ; enums
-                 (map (λ (fq) (hash-ref (all-descriptors) fq))
-                      (current-unresolved-descriptors)))))
+                 (map get-dsc root-msg-fqs)
+                 (map get-dsc root-enum-fqs)
+                 (map get-dsc all-unresolved-fqs))))
 
 
 
