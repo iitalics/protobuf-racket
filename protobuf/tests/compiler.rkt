@@ -246,4 +246,27 @@
                          "}")))
 
 
+    (for ([code (in-list '("message A { bytes x = 1; reserved 'x'; }"
+                           "message B { fixed64 x = 3; reserved 2 to 10; }"
+                           "message C { double x = 3; sint32 y = 3; }"
+                           "enum D { D1 = 0; D2 = 3; D3 = 3; }"
+                           "enum E { E1 = 1; E2 = 0; }"
+                           "message F { float x = 0; }"))]
+          [msg (in-list '(#px"field name \"x\" is reserved"
+                         #px"field number 3 is reserved"
+                         #px"field number 3 used by multiple fields"
+                         #px"cannot alias enum value number 3 without \"allow_alias\" enabled"
+                         #px"first enum value must be number 0"
+                         #px"field numbers must be positive"))]
+          [i (in-naturals 1)])
+
+      (check-exn
+       (λ (e) (regexp-match? msg (exn-message e)))
+       (λ () (compile-root/tmp "syntax = 'proto3';"
+                               "package test9;"
+                               code))
+       (format "test9 #~a" i)))
+
+
+
     ))
