@@ -438,22 +438,22 @@ nano passes:
                 (map recursive-descent (ast:root-enums root-ast))
                 (current-unresolved-descriptors))))
 
+    (define (get-dsc fq)
+      (hash-ref (all-descriptors) fq))
+
     (for ([pass-fn (in-list (nano-passes))])
       (hash-union!
        (all-descriptors) #:combine (λ (a b) b)
        (for*/hash ([fq (in-list all-unresolved-fqs)]
-                   [dsc (in-value (hash-ref (all-descriptors) fq))]
+                   [dsc (in-value (get-dsc fq))]
                    [dsc+ (in-value (pass-fn dsc))]
                    #:when (not (eq? dsc dsc+)))
          (values fq dsc+))))
-
-    (define (get-dsc fq) (hash-ref (all-descriptors) fq))
 
     (dsctor:file (ast-loc root-ast)
                  #f
                  (ast:root-options root-ast)
                  (ast:root-package root-ast)
-                 ;; TODO: second pass
                  '() '() ; deps / public-deps
                  (map get-dsc root-msg-fqs)
                  (map get-dsc root-enum-fqs)
