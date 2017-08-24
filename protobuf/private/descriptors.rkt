@@ -3,13 +3,11 @@
                      racket/syntax))
 
 (provide (struct-out dsctor)
-         dsctor-source-file-path)
+         dsctor-source-file-path
+         dsctor-option)
 
 
 (struct dsctor (loc name options) #:transparent)
-
-(define (dsctor-source-file-path d)
-  (srcloc-source (dsctor-loc d)))
 
 
 (define-syntax define-descriptor-struct
@@ -53,6 +51,14 @@
 (define-descriptor-struct (dsctor:enum-value)
   (number))
 
+
+(define (dsctor-source-file-path d)
+  (srcloc-source (dsctor-loc d)))
+
+(define (dsctor-option d key default)
+  (if (hash? (dsctor-options d))
+      (hash-ref (dsctor-options d) key (λ () default))
+      default))
 
 #|
 (define-simple-class options% object%
