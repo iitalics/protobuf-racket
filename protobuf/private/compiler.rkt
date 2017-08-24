@@ -305,15 +305,6 @@
 
 
 
-#|
-nano passes:
-+ (all) options
-+ (message) reserved fields
-+ (field) type resolution
-- (message) field numbers (aliasing)
-- (enum) value numbers (aliasing)
-|#
-
 ;; (define-nano-pass pass-name
 ;;   [(dsctor:kind (_ _ pattern _ ...))
 ;;    body ...
@@ -468,7 +459,41 @@ nano passes:
 
 
 
+;; check for attempted aliasing (multiple fields/values
+;; use the same number), and disallow it unless "allow_alias"
+;; is true.
+(define-nano-pass pass/check-aliasing 3
+  [(dsctor:message (loc _ _ fields _ _ _ _ _))
+   (cond
+     [(check-duplicates #:key dsctor:field-number
+                        (map (λ (fq) (hash-ref (all-descriptors) fq))
+                             (reverse fields)))
+      =>
+      (λ (field-dsc)
+        (raise-compile-error (dsctor-loc field-dsc)
+                             "field number ~a used by multiple fields"
+                             (dsctor:field-number field-dsc)))]
 
+     [else
+      this-dsc])]
+
+
+  [(dsctor:enum (loc _ _ vals))
+   (cond
+     [(dsctor-option this-dsc "allow_alias" #f)
+      this-dsc]
+
+     [(check-duplicates #:key dsctor:enum-value-number
+                        (map (λ (fq) (hash-ref (all-descriptors) fq))
+                             (reverse vals)))
+      =>
+      (λ (ev-dsc)
+        (raise-compile-error (dsctor-loc ev-dsc)
+                             "cannot alias enum value number ~a without \"allow_alias\" enabled"
+                             (dsctor:enum-value-number ev-dsc)))]
+
+     [else
+      this-dsc])])
 
 
 
@@ -511,19 +536,6 @@ nano passes:
                  (map get-dsc all-unresolved-fqs))))
 
 
-
-
-
-
-#|
--- third pass: (iterate current-unresolved-descriptors)
-
-dsctor:message-fields = (listof dsctor:field?)
-dsctor:message-oneofs = (listof dsctor:oneof?)
-
-create finalized descriptors and insert into all-descriptors
-create dsctor:file and return it
-|#
 
 
 
