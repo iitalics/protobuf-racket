@@ -1,8 +1,0 @@
-syntax = 'proto3';
-
-message A {
-  enum E {
-    x = 0;
-  }
-  uint32 x = 1;
-}

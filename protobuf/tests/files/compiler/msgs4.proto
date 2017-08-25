@@ -1,7 +1,0 @@
-syntax = 'proto3';
-
-message A {
-  bytes x = 2;
-  reserved 1, 15, 3 to 10, 20 to max;
-  reserved "y", "z";
-}

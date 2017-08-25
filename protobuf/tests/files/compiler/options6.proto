@@ -1,2 +1,0 @@
-syntax = 'proto3';
-option (invalid.opt).io.n = true;

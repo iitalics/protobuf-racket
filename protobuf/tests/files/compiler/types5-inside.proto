@@ -1,7 +1,0 @@
-syntax = 'proto3';
-package test.compiler.t5.inside;
-
-message Sandwich {
-  string bread = 1;
-  repeated string filling = 2;
-}

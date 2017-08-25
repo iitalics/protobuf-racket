@@ -1,6 +1,0 @@
-syntax = 'proto3';
-
-enum E {
-  A = 1;
-  B = 0;
-}
