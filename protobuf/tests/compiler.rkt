@@ -114,7 +114,7 @@
                   [A.q (hash-ref (all-descriptors) ".test4.A.q")])
 
              (define (entry-tests <label> field-dsc #:key key-ty #:val val-ty)
-               (let* ([Entry (dsctor:field-type field-dsc)]
+               (let* ([Entry (hash-ref (all-descriptors) (dsctor:field-type field-dsc))]
                       [Entry.key (first (dsctor:message-fields Entry))]
                       [Entry.value (second (dsctor:message-fields Entry))])
 
@@ -167,8 +167,10 @@
                          (caddr chk)
                          (~a chk)))
 
+         (define dim
+           (hash-ref (all-descriptors) ".test5.Part.dimension"))
          (define dim.Entry
-           (dsctor:field-type (hash-ref (all-descriptors) ".test5.Part.dimension")))
+           (hash-ref (all-descriptors) (dsctor:field-type dim)))
          (check-true (dsctor-option dim.Entry "map_entry" #f)))))
 
 
@@ -209,7 +211,8 @@
                                    "message B { enum A { Y = 0; } }")])
 
          (define checks
-           '([".test7.A.f2"   ".test7.A"]
+           '([".test7.A.f1"   uint32]
+             [".test7.A.f2"   ".test7.A"]
              [".test7.A.f3"   ".test7.A.B"]
              [".test7.A.f4"   ".test7.A.B"]
              [".test7.A.f5"   ".test7.B"]
@@ -218,16 +221,17 @@
 
          (for ([chk (in-list checks)])
            (check-equal? (dsctor:field-type (hash-ref (all-descriptors) (car chk)))
-                         (hash-ref (all-descriptors) (cadr chk))
+                         (cadr chk)
                          (~a chk)))
 
+         (define f8
+           (hash-ref (all-descriptors) ".test7.A.f8"))
          (define f8.Entry
-           (dsctor:field-type (hash-ref (all-descriptors) ".test7.A.f8")))
+           (hash-ref (all-descriptors) (dsctor:field-type f8)))
          (define f8.Entry.value
            (second (dsctor:message-fields f8.Entry)))
 
-         (check-equal? (dsctor:field-type f8.Entry.value)
-                       (hash-ref (all-descriptors) ".test7.A.B")))))
+         (check-equal? (dsctor:field-type f8.Entry.value) ".test7.A.B"))))
 
 
     (check-exn
@@ -283,7 +287,7 @@
                 [Tree.value (hash-ref (all-descriptors) ".test10.Tree.value")]
                 [Tree.children (hash-ref (all-descriptors) ".test10.Tree.children")])
 
-           (check-equal? (dsctor:field-type Tree.children) Tree)
+           (check-equal? (dsctor:field-type Tree.children) ".test10.Tree")
            (check-equal? (dsctor:message-fields Tree) (list Tree.value Tree.children))))))
 
     ))

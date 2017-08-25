@@ -527,8 +527,6 @@
    this-dsc]
 
   [(dsctor:field (_ _ _ type _ _ oneof))
-   (when (string? type)
-     (set-dsctor:field-type! this-dsc (get-dsc type)))
    (when oneof
      (set-dsctor:field-oneof! this-dsc (get-dsc oneof)))
    this-dsc]
