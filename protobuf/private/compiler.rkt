@@ -438,9 +438,22 @@
                         ([ss (in-subscopes scope)])
                 (cons (string-append ss "." type) tcs))))
 
-        (or (for/first ([fq (in-list type-candidates)]
-                        #:when (hash-has-key? (all-descriptors) fq))
-              fq)
+        ;; find the first matching type
+        (or (for*/first ([type-name (in-list type-candidates)]
+                         [type (in-value (hash-ref (all-descriptors) type-name #f))]
+                         #:when type)
+              (cond
+                [(or (dsctor:message? type)
+                     (dsctor:enum? type))
+                 type-name]
+
+                ;; it's not actually a type
+                [else
+                 (raise-compile-error loc
+                                      ;; TODO: better description?
+                                      "invalid use of descriptor ~v as a type"
+                                      type-name)]))
+
             (raise-compile-error loc
                                  "cannot find type ~v in scope ~v"
                                  type scope))]))
