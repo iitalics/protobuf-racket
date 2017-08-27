@@ -252,6 +252,18 @@
                          "}")))
 
 
+    (check-exn
+     (λ (e) (regexp-match? #px"invalid use of descriptor \".test8.B.NotAType\" as a type"
+                           (exn-message e)))
+     (λ ()
+       (compile-root/tmp "syntax = 'proto3';"
+                         "package test8;"
+                         "message B {"
+                         "  uint32 NotAType = 1;"
+                         "  NotAType x = 2;"
+                         "}")))
+
+
     (for ([code (in-list '("message A { bytes x = 1; reserved 'x'; }"
                            "message B { fixed64 x = 3; reserved 2 to 10; }"
                            "message C { double x = 3; sint32 y = 3; }"
