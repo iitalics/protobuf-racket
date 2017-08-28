@@ -1,7 +1,8 @@
 #lang racket
 (provide (all-defined-out))
 (require "../private/compiler.rkt"
-         "../private/dependencies.rkt")
+         "../private/dependencies.rkt"
+         "../private/codegen.rkt")
 
 
 ;; parse the ast:root for a file with the given string lines as contents
@@ -24,5 +25,10 @@
       (λ ()
         (delete-file tmp-path)))))
 
+;; compile the dsctor:file for a file with the given string lines as contents
 (define (compile-root/tmp . strs)
   (compile-root (apply parse-root/tmp strs)))
+
+;; generate syntax object for a file with the given string lines as contents
+(define (codegen-root/tmp #:export exports . strs)
+  (codegen-file (apply compile-root/tmp strs)))
