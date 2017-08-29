@@ -29,8 +29,10 @@
 (define (compile-root/tmp . strs)
   (compile-root (apply parse-root/tmp strs)))
 
-;; generate syntax object for a file with the given string lines as contents
-(define (codegen-root/tmp #:implementations fqs-to-gen . strs)
+
+;; return codegen implementation objects, for the given fully-qualified types,
+;; in the context of a file using the string lines as contents
+(define (implement/tmp fqs-to-gen . strs)
   (let ([file-dsc (apply compile-root/tmp strs)])
     (parameterize ([current-impl-queue (make-hash)])
       (map get-or-queue-impl

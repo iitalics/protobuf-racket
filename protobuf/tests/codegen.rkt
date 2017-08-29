@@ -14,20 +14,19 @@
 
     (check-not-exn
      (λ ()
-       (let ([impls
-              (codegen-root/tmp "syntax = 'proto3';"
-                                "package test1;"
-                                "enum Color {"
-                                "  Red = 0;"
-                                "  Green = 1;"
-                                "  Blue = 2;"
-                                "}"
-                                #:implementations '(".test1.Color"))])
+       (let ([impls (implement/tmp '(".test1.Color")
+                      "syntax = 'proto3';"
+                      "package test1;"
+                      "enum Color {"
+                      "  Red = 0;"
+                      "  Green = 1;"
+                      "  Blue = 2;"
+                      "}")])
 
          (define impl:Color (first impls))
 
          (syntax-parse (implement impl:Color)
-           #:literals (λ define-values case else quote)
+           #:literals (λ define-values case else quote begin0)
            #:datum-literals (Red Green Blue)
            [(define-values (E-> ->E E? def-E)
               (_ (λ (_) (case _
