@@ -7,7 +7,9 @@
 
 (provide (struct-out implementation)
          (struct-out renaming)
-         codegen-file)
+         current-impl-queue
+         get-or-queue-impl
+         implement)
 
 
 ;; a struct representing an implementation of a protobuf type
@@ -87,18 +89,16 @@
   (match-define (struct dsctor:enum (loc short-name opts vals))
     descriptor)
 
-  (syntax-parse (generate-temporaries #'[%enum->number %number->enum %enum?])
-    [(e->n n->e)
+  (syntax-parse (generate-temporaries #'(  %enum->number %number->enum  ))
+    [(  e->n n->e  )
      #:with e? (implementation-pred-id impl)
      #:with e-default (implementation-default-id impl)
 
-     #:with ([v-name v-num] ...)
+     #:with ([enum-val-sym enum-val-num] ...)
             (map (λ (ev)
-                   (list (dsctor-name ev)
+                   (list (string->symbol (dsctor-name ev))
                          (dsctor:enum-value-number ev)))
                  vals)
-
-     #:with [first-v-name . _] #'[v-name ...]
 
      (values (list (renaming #'e->n "~a->number")
                    (renaming #'n->e "number->~a")
@@ -108,17 +108,13 @@
              #'(define-values (e->n n->e e? e-default)
                  (values (λ (x)
                            (case x
-                             [(v-name) 'v-num] ...
+                             [(enum-val-sym) 'enum-val-num] ...
                              [else #f]))
 
                          (λ (n)
                            (case n
-                             [(v-num) 'v-name] ...
+                             [(enum-val-num) 'enum-val-sym] ...
                              [else #f]))
 
-                         (or/c 'v-name ...)
-                         'first-v-name)))]))
-
-
-(define (codegen-file file-dsc)
-  (values #'() '()))
+                         (or/c 'enum-val-sym ...)
+                         (begin0 'enum-val-sym ...))))]))
