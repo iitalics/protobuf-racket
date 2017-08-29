@@ -34,7 +34,7 @@
 ;;
 ;; current-impl-queue : (parameterof (listof impl?))
 (define current-impl-queue
-  (make-parameter '()))
+  (make-parameter (make-hash)))
 
 
 ;; find the 'implementation' object for the given
@@ -44,19 +44,18 @@
 ;; TODO: will look for the impl in a syntax binding
 ;; named 'protobuf:<name>'
 ;;
-;; get-or-queue-impl : string? -> impl?
-(define (get-or-queue-impl name)
+;; get-or-queue-impl : fq-name? -> impl?
+(define (get-or-queue-impl fq)
   (cond
-    [(findf (λ (impl) (equal? (implementation-name impl) name))
-            (current-impl-queue))
+    [(hash-ref (current-impl-queue) fq #f)
      => values]
 
     [else
-     (let ([impl (implementation name
+     (let ([impl (implementation fq
                                  (generate-temporary #'%impl:pred)
                                  (generate-temporary #'%impl:default)
                                  '())])
-       (current-impl-queue (cons impl (current-impl-queue)))
+       (hash-set! (current-impl-queue) fq impl)
        impl)]))
 
 
