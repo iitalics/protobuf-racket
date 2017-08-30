@@ -3,7 +3,9 @@
          "compiler.rkt"
          racket/syntax
          syntax/parse
-         syntax/stx)
+         syntax/stx
+         (for-template racket/base
+                       racket/contract/base))
 
 (provide (struct-out implementation)
          (struct-out renaming)
