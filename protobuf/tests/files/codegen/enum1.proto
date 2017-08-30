@@ -1,0 +1,10 @@
+syntax = "proto3";
+package codegen;
+
+enum ProgLang {
+    option allow_alias = true;
+    C = 0;
+    Smalltalk = 1;
+    Lisp = 2;
+    LISP = 2;
+}
