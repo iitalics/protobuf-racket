@@ -101,7 +101,7 @@
   (syntax-parse (generate-temporaries #'(  %enum->number %number->enum  ))
     [(  e->n n->e  )
      #:with e? (implementation-pred-id impl)
-     #:with e-default (implementation-default-id impl)
+     #:with def-e (implementation-default-id impl)
 
      #:with ([enum-val-sym enum-val-num] ...)
             (map (λ (ev)
@@ -109,21 +109,23 @@
                          (dsctor:enum-value-number ev)))
                  vals)
 
-     (values (list (renaming #'e->n "~a->number")
-                   (renaming #'n->e "number->~a")
-                   (renaming #'e?   "~a?")
-                   (renaming #'e-default "default-~a"))
+     (values
+      (list (renaming #'e->n "~a->number")
+            (renaming #'n->e "number->~a")
+            (renaming #'e?   "~a?")
+            (renaming #'def-e "default-~a"))
 
-             #'(define-values (e->n n->e e? e-default)
-                 (values (λ (x)
-                           (case x
-                             [(enum-val-sym) 'enum-val-num] ...
-                             [else #f]))
+      #'(define-values (e->n n->e e? def-e)
+          (values (λ (x)
+                    (case x
+                      [(enum-val-sym) 'enum-val-num] ...
+                      [else #f]))
 
-                         (λ (n) ;; TODO: add contract?
-                           (case n
-                             [(enum-val-num) 'enum-val-sym] ...
-                             [else #f]))
+                  (λ (n) ;; TODO: add contract?
+                    (case n
+                      [(enum-val-num) 'enum-val-sym] ...
+                      [else #f]))
 
-                         (or/c 'enum-val-sym ...)
-                         (begin0 'enum-val-sym ...))))]))
+                  (or/c 'enum-val-sym ...)
+                  (begin0 'enum-val-sym ...))))]))
+
