@@ -46,7 +46,41 @@
             (check-free-id=? #'def-E (implementation-default-id impl:Color))]
 
            [s
-            (fail (format "impl syntax: ~v"
+            (fail (format "impl enum syntax: ~v"
                           (syntax->datum #'s)))]))))
+
+
+    (check-not-exn
+     (λ ()
+       (let ([impls (implement/tmp '(".test2.Posn")
+                      "syntax = 'proto3';"
+                      "package test2;"
+                      "message Posn {"
+                      "  uint32 x = 1;"
+                      "  string y = 2;"
+                      "}")])
+
+         (define impl:Posn (first impls))
+
+         (syntax-parse (implement impl:Posn)
+           #:literals (begin struct define quote)
+           ;#:datum-literals (Red Green Blue)
+           [(begin
+              (struct %m (%x %y))
+              (define (%make-m #:x [_ '0] #:y [_ '""])
+                (%m~ _ _))
+
+              (define M? %m?)
+              (define def-M (%make-m~)))
+
+            (check-free-id=? #'M? (implementation-pred-id impl:Posn))
+            (check-free-id=? #'def-M (implementation-default-id impl:Posn))
+            (check-free-id=? #'%make-m #'%make-m~)
+            (check-free-id=? #'%m #'%m~)]
+
+           [s
+            (fail (format "impl msg syntax: ~v"
+                          (syntax->datum #'s)))]))))
+
 
     ))
