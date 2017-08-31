@@ -168,7 +168,7 @@
   (define struct-fields '())
   (struct struct-field (id init-stx))
 
-  (define (add-field! init-stx)
+  (define (add-field! [init-stx (generate-temporary #'%field-init)])
     (syntax-parse (generate-temporary #'%field)
       [fld-id
        #:do [(set! struct-fields
@@ -176,12 +176,12 @@
                          struct-fields))]
        #:with get-fld  (format-id #'fld-id "~a-~a" #'tmp-struct #'fld-id)
        #:with set-fld! (format-id #'fld-id "set-~a-~a!" #'tmp-struct #'fld-id)
-       #'(  get-fld set-fld!  )]))
+       #`(  get-fld set-fld! #,init-stx  )]))
 
   ;; regular-field : type? string? -> ..
   (define (regular-field type fld-name)
-    (syntax-parse (add-field! #'fld-init)
-      [(  get-fld set-fld!  )
+    (syntax-parse (add-field!)
+      [(  get-fld set-fld! fld-init )
        #:with default (type-default-stx type)
        #:with (~var k#:name) (string->keyword fld-name)
        (list ; definitions:
@@ -195,7 +195,7 @@
   ;; repeated-field : string? -> ..
   (define (repeated-field fld-name)
     (syntax-parse (add-field! #'fld-init)
-      [(  get-fld set-fld!  )
+      [(  get-fld set-fld! fld-init  )
        #:with (~var k#:name) (string->keyword fld-name)
        (list ; definitions:
              #'[]
