@@ -76,6 +76,7 @@
   (define-values (exports stx)
     (cond
       [(dsctor:enum? dsc) (implement-enum impl dsc)]
+      [(dsctor:message? dsc) (implement-message impl dsc)]
       [else
        (error "idk how to implement"
               (implementation-name impl))]))
@@ -129,3 +130,128 @@
                   (or/c 'enum-val-sym ...)
                   (begin0 'enum-val-sym ...))))]))
 
+
+
+
+;; implement a message type. returns the list of exports,
+;; as well as the syntax to define all the new identifiers.
+;;
+;; defines:
+;;                                                    [TODO]
+;;   {msg}?                   : any -> bool
+;;   default-{msg}            : msg
+;;   make-{msg}               : #:field field ... -> msg
+;;
+;;   for regular fields:                              [TODO]
+;;     {msg}-{field}          : msg -> field
+;;
+;;   for oneofs:                                      [TODO]
+;;     (same as regular fields)
+;;       +
+;;     {msg}-has-{oneof}?     : msg -> bool
+;;     {msg}-{oneof}-case     : msg -> symbol
+;;
+;;   for repeated fields:                             [TODO]
+;;     {msg}-{field}          : msg -> (listof field)
+;;
+;;   for map fields:                                  [TODO]
+;;     {msg}-{field}          : msg -> (immutable-hash key => val)
+;;
+;; implement-enum : implementation? dsctor:enum? -> (listof renaming?) stx?
+(define (implement-message impl descriptor)
+  (match-define (struct dsctor:message (_ _ _ fields oneofs _ _ _ _))
+    descriptor)
+
+  (define/with-syntax tmp-struct
+    (generate-temporary #'%message))
+
+  (define struct-fields '())
+  (struct struct-field (id init-stx))
+
+  (define (add-field! init-stx)
+    (syntax-parse (generate-temporary #'%field)
+      [fld-id
+       #:do [(set! struct-fields
+                   (cons (struct-field #'fld-id init-stx)
+                         struct-fields))]
+       #:with get-fld  (format-id #'fld-id "~a-~a" #'tmp-struct #'fld-id)
+       #:with set-fld! (format-id #'fld-id "set-~a-~a!" #'tmp-struct #'fld-id)
+       #'(  get-fld set-fld!  )]))
+
+  ;; regular-field : type? string? -> ..
+  (define (regular-field type fld-name)
+    (syntax-parse (add-field! #'fld-init)
+      [(  get-fld set-fld!  )
+       #:with default (type-default-stx type)
+       #:with (~var k#:name) (string->keyword fld-name)
+       (list ; definitions:
+             #'[]
+             ; ctor arguments:
+             #'[k#:name [fld-init default]]
+             ; exports:
+             (renaming #'get-fld (format "~~a-~a" fld-name))
+             #;(renaming #'set-fld! (format "set-~~a-~a!" fld-name)))]))
+
+
+  (define-values (args defns exports)
+    (for/fold ([args '()] [defns '()] [exports '()])
+              ([field-dsc (in-list (reverse fields))])
+
+      ;; TODO: determine what kind of field?
+
+      (match (regular-field (dsctor:field-type field-dsc)
+                            ;; TODO: lispify identifiers
+                            (dsctor-name field-dsc))
+        [(list* new-defns new-args new-exports)
+         (values (append (stx->list new-args) args)
+                 (append (stx->list new-defns) defns)
+                 (append new-exports exports))])))
+
+  (syntax-parse (generate-temporaries #'(  %make-messsage  ))
+    [(  make-m  )
+
+     #:with m? (implementation-pred-id impl)
+     #:with def-m (implementation-default-id impl)
+
+     #:with tmp-struct? (format-id #'tmp-struct "~a?" #'tmp-struct)
+     #:with (arg ...) args
+     #:with (defn ...) defns
+     #:with ((field-id field-init) ...)
+            (map (λ (sf)
+                   (list (struct-field-id sf)
+                         (struct-field-init-stx sf)))
+                 struct-fields)
+
+     (values
+      (list* (renaming #'make-m "make-~a")
+             (renaming #'m? "~a?")
+             exports)
+
+      #'(begin
+          (struct tmp-struct (field-id ...))
+
+          (define (make-m arg ...)
+            (tmp-struct field-init ...))
+
+          (define m? tmp-struct?)
+          (define def-m (make-m))
+
+          defn ...))]))
+
+
+
+
+(define (builtin-type-default-stx ty)
+  (case ty
+    [(bool)     #''#f]
+    [(string)   #''""]
+    [(bytes)    #'(bytes)]
+    [(float double) #''0.0]
+    [else       #''0]))
+
+(define (type-default-stx ty)
+  (cond
+    [(string? ty)
+     (implementation-default-id (get-or-queue-impl ty))]
+    [else
+     (builtin-type-default-stx ty)]))
