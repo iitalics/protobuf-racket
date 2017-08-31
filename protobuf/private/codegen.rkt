@@ -105,7 +105,7 @@
      (values (list (renaming #'e->n "~a->number")
                    (renaming #'n->e "number->~a")
                    (renaming #'e?   "~a?")
-                   (renaming #'e-defalut "default-~a"))
+                   (renaming #'e-default "default-~a"))
 
              #'(define-values (e->n n->e e? e-default)
                  (values (λ (x)
