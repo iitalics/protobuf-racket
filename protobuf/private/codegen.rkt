@@ -86,9 +86,16 @@
 
 ;; implement an enum type. returns the list of exports,
 ;; as well as the syntax to define all the new identifiers.
+;;
+;; defines:
+;;   {enum}?           : any -> bool
+;;   default-{enum}    : symbol
+;;   {enum}->number    : symbol/any -> integer, or #f if invalid
+;;   number->{enum}    : integer/any -> symbol, or #f if invalid
+;;
 ;; implement-enum : implementation? dsctor:enum? -> (listof renaming?) stx?
 (define (implement-enum impl descriptor)
-  (match-define (struct dsctor:enum (loc short-name opts vals))
+  (match-define (struct dsctor:enum (_ _ _ vals))
     descriptor)
 
   (syntax-parse (generate-temporaries #'(  %enum->number %number->enum  ))
@@ -113,7 +120,7 @@
                              [(enum-val-sym) 'enum-val-num] ...
                              [else #f]))
 
-                         (λ (n)
+                         (λ (n) ;; TODO: add contract?
                            (case n
                              [(enum-val-num) 'enum-val-sym] ...
                              [else #f]))
