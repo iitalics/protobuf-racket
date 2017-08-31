@@ -22,4 +22,6 @@
   (check-false (number->prog-lang 4))
   (check-equal? (prog-lang->number 'LISP) 2)
 
+  (check-equal? default-prog-lang 'C)
+
   )
