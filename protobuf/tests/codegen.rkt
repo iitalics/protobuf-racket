@@ -67,8 +67,8 @@
            ;#:datum-literals (Red Green Blue)
            [(begin
               (struct %m (%x %y))
-              (define (%make-m #:x [_ '0] #:y [_ '""])
-                (%m~ _ _))
+              (define (%make-m #:x [:id '0] #:y [:id '""])
+                (%m~ :id :id))
 
               (define M? %m?)
               (define def-M (%make-m~)))
@@ -81,6 +81,36 @@
            [s
             (fail (format "impl msg syntax: ~v"
                           (syntax->datum #'s)))]))))
+
+    (check-not-exn
+     (λ ()
+       (let ([impls (implement/tmp '(".test2.Polygon")
+                      "syntax = 'proto3';"
+                      "package test2;"
+                      "message Polygon {"
+                      "  repeated Posn vertices = 1;"
+                      "  test1.Color fill = 2;"
+                      "}")])
+
+         (define impl:Polygon (first impls))
+
+         (syntax-parse (implement impl:Polygon)
+           #:literals (begin struct define quote)
+           ;#:datum-literals (Red Green Blue)
+           [(begin
+              (struct %m (%verts %fill))
+              (define (%make-m #:vertices [_ '()] #:fill [_ :id])
+                (_ :id :id))
+
+              (define M? %m?)
+              (define def-M (%make-m~)))
+
+            'ok]
+
+           [s
+            (fail (format "impl msg syntax: ~v"
+                          (syntax->datum #'s)))]))))
+
 
 
     ))
