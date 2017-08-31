@@ -24,4 +24,18 @@
 
   (check-equal? default-prog-lang 'C)
 
+
+
+
+  (generate-protobuf #:extra-proto-path "files/codegen"
+                     #:source "msg1.proto"
+                     [codegen.Person person])
+
+  (define me (make-person #:name "milo" #:age 19))
+
+  (check-pred person? me)
+  (check-equal? (person-name me) "milo")
+  (check-equal? (person-age me) 19)
+  (check-equal? (person-gf me) #f)
+
   )
