@@ -192,21 +192,47 @@
              (renaming #'get-fld (format "~~a-~a" fld-name))
              #;(renaming #'set-fld! (format "set-~~a-~a!" fld-name)))]))
 
+  ;; repeated-field : string? -> ..
+  (define (repeated-field fld-name)
+    (syntax-parse (add-field! #'fld-init)
+      [(  get-fld set-fld!  )
+       #:with (~var k#:name) (string->keyword fld-name)
+       (list ; definitions:
+             #'[]
+             ; ctor arguments:
+             #'[k#:name [fld-init '()]]
+             ; exports:
+             (renaming #'get-fld (format "~~a-~a" fld-name))
+             #;(renaming #'set-fld! (format "set-~~a-~a!" fld-name)))]))
 
+
+  ;; generate various syntax for each field
   (define-values (args defns exports)
     (for/fold ([args '()] [defns '()] [exports '()])
               ([field-dsc (in-list (reverse fields))])
 
-      ;; TODO: determine what kind of field?
+      ;; TODO: lispify name
+      (define field-name (dsctor-name field-dsc))
 
-      (match (regular-field (dsctor:field-type field-dsc)
-                            ;; TODO: lispify identifiers
-                            (dsctor-name field-dsc))
+      ;; generate the individual field
+      (define new-stuff
+        (cond
+          [(dsctor:field-repeated? field-dsc)
+           (repeated-field field-name)]
+
+          [else
+           (regular-field (dsctor:field-type field-dsc)
+                          field-name)]))
+
+      (match new-stuff
         [(list* new-defns new-args new-exports)
          (values (append (stx->list new-args) args)
                  (append (stx->list new-defns) defns)
                  (append new-exports exports))])))
 
+
+  ;; put it all together into the struct definition, predicate,
+  ;; constructor, etc.
   (syntax-parse (generate-temporaries #'(  %make-messsage  ))
     [(  make-m  )
 
