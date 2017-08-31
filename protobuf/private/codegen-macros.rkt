@@ -73,16 +73,14 @@
 
     (cond
       [(or (dsctor:enum? dsc)
-           #;(dsctor:message? dsc)
+           (dsctor:message? dsc)
            )
        fq]
 
       [(not dsc)
        (raise-syntax-error #f
-                           "no such protobuf type ~v"
-                           str)]
+                           (format "no such protobuf type ~v" str))]
 
       [dsc
        (raise-syntax-error #f
-                           "~v is not a valid protobuf type (enum or message)"
-                           str)])))
+                           (format "~v is not a valid protobuf type (enum or message)" str))])))
