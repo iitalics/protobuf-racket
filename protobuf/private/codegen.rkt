@@ -140,7 +140,7 @@
 ;;                                                    [TODO]
 ;;   {msg}?                   : any -> bool
 ;;   default-{msg}            : msg
-;;   make-{msg}               : #:field field ... -> msg
+;;   make-{msg}               : #:{field} field ... -> msg
 ;;
 ;;   for regular fields:                              [TODO]
 ;;     {msg}-{field}          : msg -> field
@@ -162,108 +162,50 @@
   (match-define (struct dsctor:message (_ _ _ fields oneofs _ _ _ _))
     descriptor)
 
-  (define/with-syntax tmp-struct
-    (generate-temporary #'%message))
-
-  (define struct-fields '())
-  (struct struct-field (id init-stx))
-
-  (define (add-field! [init-stx (generate-temporary #'%field-init)])
-    (syntax-parse (generate-temporary #'%field)
-      [fld-id
-       #:do [(set! struct-fields
-                   (cons (struct-field #'fld-id init-stx)
-                         struct-fields))]
-       #:with get-fld  (format-id #'fld-id "~a-~a" #'tmp-struct #'fld-id)
-       #:with set-fld! (format-id #'fld-id "set-~a-~a!" #'tmp-struct #'fld-id)
-       #`(  get-fld set-fld! #,init-stx  )]))
-
-  ;; regular-field : type? string? -> ..
-  (define (regular-field type fld-name)
-    (syntax-parse (add-field!)
-      [(  get-fld set-fld! fld-init )
-       #:with default (type-default-stx type)
-       #:with (~var k#:name) (string->keyword fld-name)
-       (list ; definitions:
-             #'[]
-             ; ctor arguments:
-             #'[k#:name [fld-init default]]
-             ; exports:
-             (renaming #'get-fld (format "~~a-~a" fld-name))
-             #;(renaming #'set-fld! (format "set-~~a-~a!" fld-name)))]))
-
-  ;; repeated-field : string? -> ..
-  (define (repeated-field fld-name)
-    (syntax-parse (add-field! #'fld-init)
-      [(  get-fld set-fld! fld-init  )
-       #:with (~var k#:name) (string->keyword fld-name)
-       (list ; definitions:
-             #'[]
-             ; ctor arguments:
-             #'[k#:name [fld-init '()]]
-             ; exports:
-             (renaming #'get-fld (format "~~a-~a" fld-name))
-             #;(renaming #'set-fld! (format "set-~~a-~a!" fld-name)))]))
-
-
-  ;; generate various syntax for each field
-  (define-values (args defns exports)
-    (for/fold ([args '()] [defns '()] [exports '()])
-              ([field-dsc (in-list (reverse fields))])
-
-      ;; TODO: lispify name
-      (define field-name (dsctor-name field-dsc))
-
-      ;; generate the individual field
-      (define new-stuff
-        (cond
-          [(dsctor:field-repeated? field-dsc)
-           (repeated-field field-name)]
-
-          [else
-           (regular-field (dsctor:field-type field-dsc)
-                          field-name)]))
-
-      (match new-stuff
-        [(list* new-defns new-args new-exports)
-         (values (append (stx->list new-args) args)
-                 (append (stx->list new-defns) defns)
-                 (append new-exports exports))])))
-
-
-  ;; put it all together into the struct definition, predicate,
-  ;; constructor, etc.
-  (syntax-parse (generate-temporaries #'(  %make-messsage  ))
-    [(  make-m  )
-
+  (syntax-parse (generate-temporaries #'(  %msg-strct %mk-msg %msg? %get %set  ))
+    [(  msg-strct make-strct strct? idx-get idx-set!  )
      #:with m? (implementation-pred-id impl)
      #:with def-m (implementation-default-id impl)
+     #:with mk-m (generate-temporary #'%mk-m)
 
-     #:with tmp-struct? (format-id #'tmp-struct "~a?" #'tmp-struct)
-     #:with (arg ...) args
-     #:with (defn ...) defns
-     #:with ((field-id field-init) ...)
-            (map (λ (sf)
-                   (list (struct-field-id sf)
-                         (struct-field-init-stx sf)))
-                 struct-fields)
+     #:do [(define (regular-field dsc idx)
+             (with-syntax ([init-var (generate-temporary #'%msg-init)]
+                           [default (type-default-stx (dsctor:field-type dsc))]
+                           [KW (string->keyword (dsctor-name dsc))])
+               (list #'[KW [init-var default]]
+                     #'init-var)))]
+
+     #:with fullname-sym (string->symbol (implementation-name impl))
+     #:with n-strct-fields (length fields)
+     #:with (field-i ...) (range (length fields))
+     #:with (m-get ...) (generate-temporaries #'(field-i ...))
+
+     #:with [([in-arg ...] init-expr) ...]
+     (stx-map regular-field
+              fields
+              #'[field-i ...])
 
      (values
-      (list* (renaming #'make-m "make-~a")
-             (renaming #'m? "~a?")
-             exports)
+      (list* (renaming #'m? "~a?")
+             (renaming #'def-m "default-~a")
+             (renaming #'mk-m "make-~a")
+             (stx-map (λ (id field-dsc)
+                        (renaming id (format "~~a-~a" (dsctor-name field-dsc))))
+                      #'[m-get ...]
+                      fields))
 
       #'(begin
-          (struct tmp-struct (field-id ...))
+          (define-values (msg-strct make-strct strct? idx-get idx-set!)
+            (make-struct-type 'fullname-sym #f 'n-strct-fields 0))
 
-          (define (make-m arg ...)
-            (tmp-struct field-init ...))
+          (define (mk-m in-arg ... ...)
+            (make-strct init-expr ...))
 
-          (define m? tmp-struct?)
-          (define def-m (make-m))
+          (define (m-get m)
+            (idx-get m 'field-i)) ...
 
-          defn ...))]))
-
+          (define m? strct?)
+          (define def-m (mk-m))))]))
 
 
 
@@ -271,7 +213,7 @@
   (case ty
     [(bool)     #''#f]
     [(string)   #''""]
-    [(bytes)    #'(bytes)]
+    [(bytes)    #''#""]
     [(float double) #''0.0]
     [else       #''0]))
 
