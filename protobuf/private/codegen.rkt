@@ -173,7 +173,14 @@
                            [default (type-default-stx (dsctor:field-type dsc))]
                            [KW (string->keyword (dsctor-name dsc))])
                (list #'[KW [init-var default]]
+                     #'init-var)))
+
+           (define (repeated-field dsc idx)
+             (with-syntax ([init-var (generate-temporary #'%msg-init)]
+                           [KW (string->keyword (dsctor-name dsc))])
+               (list #'[KW [init-var '()]]
                      #'init-var)))]
+
 
      #:with fullname-sym (string->symbol (implementation-name impl))
      #:with n-strct-fields (length fields)
@@ -181,7 +188,12 @@
      #:with (m-get ...) (generate-temporaries #'(field-i ...))
 
      #:with [([in-arg ...] init-expr) ...]
-     (stx-map regular-field
+     (stx-map (λ (field-dsc idx)
+                (cond
+                  [(dsctor:field-repeated? field-dsc)
+                   (repeated-field field-dsc idx)]
+                  [else
+                   (regular-field field-dsc idx)]))
               fields
               #'[field-i ...])
 
