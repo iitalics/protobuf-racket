@@ -179,23 +179,22 @@
              (with-syntax ([init-var (generate-temporary #'%msg-init)]
                            [KW (string->keyword (dsctor-name dsc))])
                (list #'[KW [init-var '()]]
-                     #'init-var)))]
-
+                     #'init-var)))
+           ]
 
      #:with fullname-sym (string->symbol (implementation-name impl))
-     #:with n-strct-fields (length fields)
      #:with (field-i ...) (range (length fields))
      #:with (m-get ...) (generate-temporaries #'(field-i ...))
 
      #:with [([in-arg ...] init-expr) ...]
-     (stx-map (λ (field-dsc idx)
-                (cond
-                  [(dsctor:field-repeated? field-dsc)
-                   (repeated-field field-dsc idx)]
-                  [else
-                   (regular-field field-dsc idx)]))
-              fields
-              #'[field-i ...])
+            (for/list ([field-dsc (in-list fields)]
+                       [idx (in-syntax #'[field-i ...])]
+                       #:when (not (dsctor:field-oneof field-dsc)))
+              (cond
+                [(dsctor:field-repeated? field-dsc)
+                 (repeated-field field-dsc idx)]
+                [else
+                 (regular-field field-dsc idx)]))
 
      (values
       (list* (renaming #'m? "~a?")
@@ -206,9 +205,9 @@
                       #'[m-get ...]
                       fields))
 
-      #'(begin
+      #`(begin
           (define-values (msg-strct make-strct strct? idx-get idx-set!)
-            (make-struct-type 'fullname-sym #f 'n-strct-fields 0))
+            (make-struct-type 'fullname-sym #f #,(length fields) 0))
 
           (define (mk-m in-arg ... ...)
             (make-strct init-expr ...))
