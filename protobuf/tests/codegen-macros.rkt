@@ -38,4 +38,9 @@
   (check-equal? (person-age me) 19)
   (check-equal? (person-gf me) #f)
 
+  (check-pred person? default-person)
+  (check-equal? (person-name default-person) "")
+  (check-equal? (person-age default-person) 0)
+  (check-equal? (person-gf default-person) #f)
+
   )
