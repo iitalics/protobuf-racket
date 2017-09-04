@@ -63,24 +63,32 @@
          (define impl:Posn (first impls))
 
          (syntax-parse (implement impl:Posn)
-           #:literals (begin struct define quote)
+           #:literals (begin define-values make-struct-type define quote)
            ;#:datum-literals (Red Green Blue)
            [(begin
-              (struct %m (%x %y))
+              (define-values (%type-m %m %m? %get %set!)
+                (make-struct-type ':id #f 2 0))
+
               (define (%make-m #:x [:id '0] #:y [:id '""])
                 (%m~ :id :id))
 
-              (define M? %m?)
+              (define (%get-x _) (%get~ _ '0))
+              (define (%get-y _) (_     _ '1))
+
+              (define M? %m?~)
               (define def-M (%make-m~)))
 
             (check-free-id=? #'M? (implementation-pred-id impl:Posn))
             (check-free-id=? #'def-M (implementation-default-id impl:Posn))
             (check-free-id=? #'%make-m #'%make-m~)
-            (check-free-id=? #'%m #'%m~)]
+            (check-free-id=? #'%m #'%m~)
+            (check-free-id=? #'%m? #'%m?~)
+            (check-free-id=? #'%get #'%get~)]
 
            [s
             (fail (format "impl msg syntax: ~v"
                           (syntax->datum #'s)))]))))
+
 
     (check-not-exn
      (λ ()
@@ -95,15 +103,24 @@
          (define impl:Polygon (first impls))
 
          (syntax-parse (implement impl:Polygon)
-           #:literals (begin struct define quote)
+           #:literals (begin define-values make-struct-type define quote)
            ;#:datum-literals (Red Green Blue)
            [(begin
-              (struct %m (%verts %fill))
-              (define (%make-m #:vertices [_ '()] #:fill [_ :id])
-                (_ :id :id))
+              (define-values (%type-m %m %m? %get %set!)
+                (make-struct-type ':id #f 2 0))
 
-              (define M? %m?)
+              (define (%make-m #:vertices [:id '()] #:fill [:id %def-color])
+                (%m~ :id :id))
+
+              (define (%get-v _) (%get~ _ '0))
+              (define (%get-f _) (_     _ '1))
+
+              (define M? %m?~)
               (define def-M (%make-m~)))
+
+            (check-free-id=? #'%def-color
+                             (implementation-default-id
+                              (get-or-queue-impl ".test1.Color")))
 
             'ok]
 
