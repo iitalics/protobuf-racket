@@ -138,7 +138,10 @@
 
          (define impl:Move (first impls))
          (syntax-parse (implement impl:Move)
-           #:literals (begin define-values make-struct-type define quote and error)
+           #:literals (begin define-values make-struct-type
+                             define quote and error
+                             if eq?)
+           #:datum-literals (fwd bwd turn sec ms)
            [(begin
               (define-values (_ ...)
                 (make-struct-type ':id #f 5 0))
@@ -152,8 +155,18 @@
               (define (%speed-case _)    (%get  _ 0))
               (define (%duration-case _) (%get~ _ 2))
               (define (%precise _)       (_     _ 4))
-              (define M? _)
-              (define def-M (_)))
+              (define (%fwd _)
+                (if (eq? 'fwd (_ _ 0)) (_ _ 1) 0.0))
+              (define (%bwd _)
+                (if (eq? 'bwd (_ _ 0)) (_ _ 1) 0.0))
+              (define (%turn _)
+                (if (eq? 'turn (_ _ 0)) (_ _ 1) 0.0))
+              (define (%sec _)
+                (if (eq? 'sec (_ _ 2)) (_ _ 3) 0.0))
+              (define (%ms _)
+                (if (eq? 'ms (_ _ 2)) (_ _ 3) 0))
+
+              _ ...)
 
             (check-free-id=? #'%p #'%p~)
             (check-free-id=? #'%sc #'%sc~)
