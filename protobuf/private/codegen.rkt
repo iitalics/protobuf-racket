@@ -146,8 +146,8 @@
 ;;
 ;;   for oneofs:
 ;;     {msg}-{oneof}-case     : msg -> symbol
-;;     {msg}-has-{field}?     : msg -> bool    [TODO]
-;;     {msg}-{field}          : msg -> val     [TODO]
+;;     {msg}-has-{field}?     : msg -> bool
+;;     {msg}-{field}          : msg -> val
 ;;
 ;;   for repeated fields:
 ;;     {msg}-{field}          : msg -> (listof val)
@@ -221,24 +221,27 @@
             #'[(oo-init-arg-case oo-init-arg) ...]
 
      #:with fullname-sym (string->symbol (implementation-name impl))
-     #:with (m-get-fld ...) (generate-temporaries regular-fields)
-     #:with (m-get-oofld ...) (generate-temporaries oneof-fields)
      #:with (m-get-oo-case ...) (generate-temporaries oneofs)
+     #:with (m-get-fld ...) (generate-temporaries regular-fields)
+     #:with (m-has-oofld? ...) (generate-temporaries oneof-fields)
+     #:with (m-get-oofld ...) (generate-temporaries oneof-fields)
 
      (values
       (append (list (renaming #'m? "~a?")
                     (renaming #'def-m "default-~a")
                     (renaming #'mk-m "make-~a"))
 
-              (stx-map (λ (id field-dsc)
-                         (renaming id (format "~~a-~a" (dsctor-name field-dsc))))
+              (stx-map (λ (id dsc) (renaming id (format "~~a-~a" (dsctor-name dsc))))
                        #'[     m-get-fld ...   m-get-oofld ...]
                        (append regular-fields  oneof-fields))
 
-              (stx-map (λ (id oneof-dsc)
-                         (renaming id (format "~~a-~a-case" (dsctor-name oneof-dsc))))
+              (stx-map (λ (id dsc) (renaming id (format "~~a-~a-case" (dsctor-name dsc))))
                        #'[m-get-oo-case ...]
-                       oneofs))
+                       oneofs)
+
+              (stx-map (λ (id dsc) (renaming id (format "~~a-has-~a?" (dsctor-name dsc))))
+                       #'[m-has-oofld? ...]
+                       oneof-fields))
 
       #`(begin
           (define-values (msg-strct make-strct strct? idx-get idx-set!)
@@ -258,9 +261,12 @@
           (define (m-get-fld m)
             (idx-get m fld-index)) ...
 
+          (define (m-has-oofld? m)
+            (eq? 'oofld-case-name
+                 (idx-get m oofld-oneof-index))) ...
+
           (define (m-get-oofld m)
-            (if (eq? 'oofld-case-name
-                     (idx-get m oofld-oneof-index))
+            (if (m-has-oofld? m)
                 (idx-get m oofld-index)
                 oofld-default-expr)) ...
 

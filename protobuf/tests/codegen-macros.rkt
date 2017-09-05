@@ -71,4 +71,10 @@
   (check-equal? (move-bwd fast) 0.0)
   (check-equal? (move-ang fast) 0.0)
 
+  (check-true (move-has-fwd? fast))
+  (check-false (move-has-bwd? fast))
+  (check-false (move-has-ang? fast))
+  (check-true (move-has-sec? fast))
+  (check-false (move-has-ms? fast))
+
   )

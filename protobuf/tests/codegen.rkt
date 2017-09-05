@@ -155,16 +155,16 @@
               (define (%speed-case _)    (%get  _ 0))
               (define (%duration-case _) (%get~ _ 2))
               (define (%precise _)       (_     _ 4))
-              (define (%fwd _)
-                (if (eq? 'fwd (_ _ 0)) (_ _ 1) 0.0))
-              (define (%bwd _)
-                (if (eq? 'bwd (_ _ 0)) (_ _ 1) 0.0))
-              (define (%turn _)
-                (if (eq? 'turn (_ _ 0)) (_ _ 1) 0.0))
-              (define (%sec _)
-                (if (eq? 'sec (_ _ 2)) (_ _ 3) 0.0))
-              (define (%ms _)
-                (if (eq? 'ms (_ _ 2)) (_ _ 3) 0))
+              (define (%has-fwd? _) (eq? 'fwd (_ _ 0)))
+              (define (%has-bwd? _) (eq? 'bwd (_ _ 0)))
+              (define (%has-turn? _) (eq? 'turn (_ _ 0)))
+              (define (%has-sec? _) (eq? 'sec (_ _ 2)))
+              (define (%has-ms? _) (eq? 'ms (_ _ 2)))
+              (define (%get-fwd _) (if (%has-fwd?~ _) (_ _ 1) 0.0))
+              (define (%get-bwd _) (if (%has-bwd?~ _) (_ _ 1) 0.0))
+              _
+              _
+              (define (%get-ms _) (if (%has-ms?~ _) (_ _ 3) 0))
 
               _ ...)
 
@@ -175,7 +175,10 @@
             (check-free-id=? #'%dc #'%dc~)
             (check-free-id=? #'%get #'%get~)
             (check-equal? (syntax-e #'%sc-err)
-                          "keyword argument #:speed must be supplied when #:speed-case is")]
+                          "keyword argument #:speed must be supplied when #:speed-case is")
+            (check-free-id=? #'%has-fwd? #'%has-fwd?~)
+            (check-free-id=? #'%has-bwd? #'%has-bwd?~)
+            (check-free-id=? #'%has-ms? #'%has-ms?~)]
 
            [s
             (fail (format "impl msg syntax: ~v"
