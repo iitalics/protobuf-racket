@@ -175,7 +175,7 @@
             (for/list ([dsc (in-list fields)]
                        [i (in-naturals)]
                        #:when (not (dsctor:field-oneof dsc)))
-              (list i
+              (list #`#,i
                     (string->keyword (dsctor-name dsc))
                     (generate-temporary #'%msg-init)
                     (type-default-stx
@@ -205,7 +205,7 @@
             (make-strct fld-init-arg ...))
 
           (define (m-get m)
-            (idx-get m 'fld-index)) ...
+            (idx-get m fld-index)) ...
 
           (define m? strct?)
           (define def-m (mk-m))))]))

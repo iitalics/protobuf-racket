@@ -72,8 +72,8 @@
               (define (%make-m #:x [:id '0] #:y [:id '""])
                 (%m~ :id :id))
 
-              (define (%get-x _) (%get~ _ '0))
-              (define (%get-y _) (_     _ '1))
+              (define (%get-x _) (%get~ _ 0))
+              (define (%get-y _) (_     _ 1))
 
               (define M? %m?~)
               (define def-M (%make-m~)))
@@ -112,8 +112,8 @@
               (define (%make-m #:vertices [:id '()] #:fill [:id %def-color])
                 (%m~ :id :id))
 
-              (define (%get-v _) (%get~ _ '0))
-              (define (%get-f _) (_     _ '1))
+              (define (%get-v _) (%get~ _ 0))
+              (define (%get-f _) (_     _ 1))
 
               (define M? %m?~)
               (define def-M (%make-m~)))
