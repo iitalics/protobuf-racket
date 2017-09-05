@@ -195,13 +195,22 @@
 
          (define impl:KVStore (first impls))
          (syntax-parse (implement impl:KVStore)
-           #:literals (begin define-values make-struct-type define quote)
+           #:literals (begin define-values make-struct-type define quote λ hash-ref)
            #:datum-literals (fwd bwd turn sec ms)
            [(begin
               _
               (define (%make-kvstore #:data [_ hsh]) _)
+              (define (%get-data _)
+                (%get _ 0))
+              (define (%data-ref _ %k [%v (λ () "")])
+                (hash-ref (%get~ _ 0)
+                          %k~ %v~))
               _ ...)
-            (check-pred hash? (syntax-e #'hsh))]
+
+            (check-pred hash? (syntax-e #'hsh))
+            (check-free-id=? #'%get #'%get~)
+            (check-free-id=? #'%k #'%k~)
+            (check-free-id=? #'%v #'%v~)]
 
            [s
             (fail (format "impl msg syntax: ~v"

@@ -168,7 +168,13 @@
      #:with mk-m (generate-temporary #'%mk-m)
 
      #:do [(define-values (oneof-fields regular-fields)
-             (partition dsctor:field-oneof fields))]
+             (partition dsctor:field-oneof fields))
+
+           (define map-fields
+             (filter map-field? fields))
+
+           (define fld-index-start
+             (* 2 (length oneofs)))]
 
      #:with [(oo-index
               oo-kw
@@ -192,7 +198,7 @@
               fld-init-arg
               fld-default-expr) ...]
             (for/list ([dsc (in-list regular-fields)]
-                       [i (in-naturals (* 2 (length oneofs)))])
+                       [i (in-naturals fld-index-start)])
               (list #`#,i
                     (string->keyword (dsctor-name dsc))
                     (generate-temporary #'%msg-init)
@@ -211,6 +217,15 @@
                     (string->symbol (dsctor-name dsc))
                     (type-default-stx (dsctor:field-type dsc))))
 
+     #:with [(mapfld-index
+              mapfld-val-default-expr) ...]
+            (for/list ([dsc (in-list regular-fields)]
+                       [i (in-naturals fld-index-start)]
+                       #:when (map-field? dsc))
+              (let* ([entry-dsc (hash-ref (all-descriptors) (dsctor:field-type dsc))]
+                     [value-dsc (second (dsctor:message-fields entry-dsc))])
+                (list #`#,i
+                      (type-default-stx (dsctor:field-type value-dsc)))))
 
      #:with [(kw+arg ...) ...]
             #'[(fld-kw [fld-init-arg fld-default-expr]) ...
@@ -226,6 +241,7 @@
      #:with (m-get-fld ...) (generate-temporaries regular-fields)
      #:with (m-has-oofld? ...) (generate-temporaries oneof-fields)
      #:with (m-get-oofld ...) (generate-temporaries oneof-fields)
+     #:with (m-mapfld-ref ...) (generate-temporaries map-fields)
 
      (values
       (append (list (renaming #'m? "~a?")
@@ -242,7 +258,11 @@
 
               (stx-map (λ (id dsc) (renaming id (format "~~a-has-~a?" (dsctor-name dsc))))
                        #'[m-has-oofld? ...]
-                       oneof-fields))
+                       oneof-fields)
+
+              (stx-map (λ (id dsc) (renaming id (format "~~a-~a-ref" (dsctor-name dsc))))
+                       #'[m-mapfld-ref ...]
+                       map-fields))
 
       #`(begin
           (define-values (msg-strct make-strct strct? idx-get idx-set!)
@@ -270,6 +290,10 @@
             (if (m-has-oofld? m)
                 (idx-get m oofld-index)
                 oofld-default-expr)) ...
+
+          (define (m-mapfld-ref m k [v (λ () mapfld-val-default-expr)])
+            (hash-ref (idx-get m mapfld-index)
+                      k v)) ...
 
           (define m? strct?)
           (define def-m (mk-m))))]))

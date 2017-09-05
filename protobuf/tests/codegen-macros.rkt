@@ -100,10 +100,8 @@
                       "B" (make-vert #:edges '("C"))
                       "C" (make-vert #:edges '()))))
 
-  #|
   (check-equal? (vert-edges (graph-vertices-ref g "A")) '("B" "C"))
   (check-equal? (vert-edges (graph-vertices-ref g "B")) '("C"))
   (check-equal? (vert-edges (graph-vertices-ref g "C")) '())
-  |#
 
   )
