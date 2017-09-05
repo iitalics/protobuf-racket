@@ -149,14 +149,18 @@
                                #:speed [%s (and %sc~ (error %sc-err))]
                                #:duration [%d (and _ (error _))])
                 (_ %sc~~ %s~ %dc~ %d~ %p~))
-
-              _ ...)
+              (define (%speed-case _)    (%get  _ 0))
+              (define (%duration-case _) (%get~ _ 2))
+              (define (%precise _)       (_     _ 4))
+              (define M? _)
+              (define def-M (_)))
 
             (check-free-id=? #'%p #'%p~)
             (check-free-id=? #'%sc #'%sc~)
             (check-free-id=? #'%sc #'%sc~~)
             (check-free-id=? #'%d #'%d~)
-            (check-free-id=? #'%dc #'%dc~)]
+            (check-free-id=? #'%dc #'%dc~)
+            (check-free-id=? #'%get #'%get~)]
 
            [s
             (fail (format "impl msg syntax: ~v"

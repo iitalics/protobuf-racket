@@ -237,11 +237,11 @@
             (make-strct oo-inits ... ...
                         fld-init-arg ...))
 
-          (define (m-get-fld m)
-            (idx-get m fld-index)) ...
-
           (define (m-get-oo-case m)
             (idx-get m oo-index)) ...
+
+          (define (m-get-fld m)
+            (idx-get m fld-index)) ...
 
           (define m? strct?)
           (define def-m (mk-m))))]))
