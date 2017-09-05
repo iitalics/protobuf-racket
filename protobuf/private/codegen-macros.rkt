@@ -32,26 +32,43 @@
                (parse+dependencies
                 (syntax->datum #'(source-file ...)))))
 
-           ; compile: ast? -> dsctor?
+           ; compile the ASTs into descriptors: ast? -> dsctor?
            (for-each compile-root all-sorted-asts)
 
-           ; queue codegen: dsctor? -> implementation?
-           (define-values (impls all-impls)
+           (define-values (impls-to-export impl=>stx)
              (parameterize ([current-impl-queue (make-hash)])
-               (values (for/list ([src (in-syntax #'[to-gen ...])]
-                                  [orig-id (in-syntax #'[to-gen.orig ...])])
-                         (get-or-queue-impl
-                          (id->type-dsctor-name orig-id #:source-stx src)))
+               ; queue up initial descriptors to be code generated
+               ; these are the ones we'll export
+               (define impls-to-export
+                 (for/list ([src (in-syntax #'[to-gen ...])]
+                            [orig-id (in-syntax #'[to-gen.orig ...])])
+                   (get-or-queue-impl
+                    (id->type-dsctor-name orig-id #:source-stx src))))
 
-                       (hash-values (current-impl-queue)))))]
+               ; keeping polling the queue while there are more things
+               ; to implement.
+               ; TODO: more efficient way? (e.g. not as much hashing & an actual queue)
+               (define impl=>stx (make-hash))
+               (let poll ()
+                 (cond
+                   [(eq? (hash-count impl=>stx)
+                         (hash-count (current-impl-queue)))
+                    (values impls-to-export impl=>stx)]
 
-     ; perform codegen: implementation? -> syntax?
-     #:with [impl-stx ...] (map implement all-impls)
+                   [else
+                    (for ([impl (in-hash-values (current-impl-queue))])
+                      (hash-ref! impl=>stx
+                                 impl
+                                 (λ () (implement impl))))
+                    (poll)]))))]
+
+     ; extract the syntax for all the generated impls
+     #:with [impl-stx ...] (hash-values impl=>stx)
 
      ; create rename transformers from exported identifiers
      ;   renaming? -> syntax?
      #:with [rename-stx ...]
-     (for/list ([impl (in-list impls)]
+     (for/list ([impl (in-list impls-to-export)]
                 [into-id (in-syntax #'[to-gen.into ...])]
                 #:when #t ; this causes the next sequence to be nested instead of parallel
                 [rnm (in-list (implementation-exports impl))])

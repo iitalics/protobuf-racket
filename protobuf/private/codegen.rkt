@@ -33,10 +33,10 @@
   (id fmt))
 
 
-;; list of impls that need to be actually defined during
-;; this codegen
+;; impls that need must be generated, mapped by the name of the
+;; descriptor being implemented.
 ;;
-;; current-impl-queue : (parameterof (listof impl?))
+;; current-impl-queue : (parameterof (hash fq-name? => impl?))
 (define current-impl-queue
   (make-parameter (make-hash)))
 
