@@ -180,7 +180,7 @@
               oo-no-arg-msg) ...]
             (for/list ([dsc (in-list oneofs)]
                        [i (in-naturals)])
-              (list (* 2 i)
+              (list #`#,(* 2 i)
                     (string->keyword (dsctor-name dsc))
                     (string->keyword (format "~a-case" (dsctor-name dsc)))
                     (generate-temporary #'%oo-init)
