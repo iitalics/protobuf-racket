@@ -165,7 +165,6 @@
               _
               _
               (define (%get-ms _) (if (%has-ms?~ _) (_ _ 3) 0))
-
               _ ...)
 
             (check-free-id=? #'%p #'%p~)
@@ -179,6 +178,30 @@
             (check-free-id=? #'%has-fwd? #'%has-fwd?~)
             (check-free-id=? #'%has-bwd? #'%has-bwd?~)
             (check-free-id=? #'%has-ms? #'%has-ms?~)]
+
+           [s
+            (fail (format "impl msg syntax: ~v"
+                          (syntax->datum #'s)))]))))
+
+
+    (check-not-exn
+     (λ ()
+       (let ([impls (implement/tmp '(".test4.KVStore")
+                      "syntax = 'proto3';"
+                      "package test4;"
+                      "message KVStore {"
+                      "  map<string, string> data = 1;"
+                      "}")])
+
+         (define impl:KVStore (first impls))
+         (syntax-parse (implement impl:KVStore)
+           #:literals (begin define-values make-struct-type define quote)
+           #:datum-literals (fwd bwd turn sec ms)
+           [(begin
+              _
+              (define (%make-kvstore #:data [_ hsh]) _)
+              _ ...)
+            (check-pred hash? (syntax-e #'hsh))]
 
            [s
             (fail (format "impl msg syntax: ~v"

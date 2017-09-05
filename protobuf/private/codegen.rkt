@@ -154,6 +154,7 @@
 ;;
 ;;   for map fields:
 ;;     {msg}-{field}          : msg -> (immutable-hash key => val)
+;;     {msg}-{field}-ref      : msg key [val/thunk] -> val   [TODO]
 ;;
 ;; implement-enum : implementation? dsctor:enum? -> (listof renaming?) stx?
 (define (implement-message impl descriptor)
@@ -274,7 +275,6 @@
           (define def-m (mk-m))))]))
 
 
-
 (define (builtin-type-default-stx ty)
   (case ty
     [(bool)     #'#f]
@@ -285,6 +285,16 @@
 
 (define (type-default-stx ty #:repeated? [repeated? #f])
   (cond
-    [repeated?    #''()]
+    [repeated?    (if (map-entry-type? ty) #'#hash() #''())]
     [(string? ty) (implementation-default-id (get-or-queue-impl ty))]
     [else         (builtin-type-default-stx ty)]))
+
+(define (map-field? dsc)
+  (and (dsctor:field-repeated? dsc)
+       (map-entry-type? (dsctor:field-type dsc))))
+
+(define (map-entry-type? ty)
+  (and (string? ty)
+       (dsctor-option (hash-ref (all-descriptors) ty)
+                      "map_entry"
+                      #f)))
