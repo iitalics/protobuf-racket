@@ -3,6 +3,9 @@
   (require rackunit
            "../private/codegen-macros.rkt")
 
+
+  ;;; test basic enum usage
+
   (generate-protobuf #:extra-proto-path "files/codegen"
                      #:source "enum1.proto"
                      [codegen.ProgLang prog-lang])
@@ -26,6 +29,8 @@
 
 
 
+  ;;; test basic message usage
+
   (generate-protobuf #:extra-proto-path "files/codegen"
                      #:source "msg1.proto"
                      [codegen.Person person])
@@ -42,6 +47,9 @@
   (check-equal? (person-age default-person) 0)
   (check-equal? (person-gf default-person) #f)
 
+
+
+  ;;; test message oneofs
 
   (generate-protobuf #:extra-proto-path "files/codegen"
                      #:source "msg2.proto"
@@ -76,5 +84,26 @@
   (check-false (move-has-ang? fast))
   (check-true (move-has-sec? fast))
   (check-false (move-has-ms? fast))
+
+
+
+  ;;; test map fields
+
+  (generate-protobuf #:extra-proto-path "files/codegen"
+                     #:source "msg3.proto"
+                     [codegen.Graph graph]
+                     [codegen.Graph.Vert vert])
+
+  (define g
+    (make-graph #:vertices
+                (hash "A" (make-vert #:edges '("B" "C"))
+                      "B" (make-vert #:edges '("C"))
+                      "C" (make-vert #:edges '()))))
+
+  #|
+  (check-equal? (vert-edges (graph-vertices-ref g "A")) '("B" "C"))
+  (check-equal? (vert-edges (graph-vertices-ref g "B")) '("C"))
+  (check-equal? (vert-edges (graph-vertices-ref g "C")) '())
+  |#
 
   )

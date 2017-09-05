@@ -1,0 +1,10 @@
+syntax = "proto3";
+package codegen;
+
+message Graph {
+    message Vert {
+        repeated string edges = 1;
+    }
+
+    map<string, Vert> vertices = 1;
+}
