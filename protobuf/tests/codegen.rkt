@@ -24,7 +24,6 @@
                       "}")])
 
          (define impl:Color (first impls))
-
          (syntax-parse (implement impl:Color)
            #:literals (λ define-values case else quote begin0)
            #:datum-literals (Red Green Blue)
@@ -61,20 +60,16 @@
                       "}")])
 
          (define impl:Posn (first impls))
-
          (syntax-parse (implement impl:Posn)
            #:literals (begin define-values make-struct-type define quote)
            ;#:datum-literals (Red Green Blue)
            [(begin
               (define-values (%type-m %m %m? %get %set!)
                 (make-struct-type ':id #f 2 0))
-
               (define (%make-m #:x [:id '0] #:y [:id '""])
                 (%m~ :id :id))
-
               (define (%get-x _) (%get~ _ 0))
               (define (%get-y _) (_     _ 1))
-
               (define M? %m?~)
               (define def-M (%make-m~)))
 
@@ -101,28 +96,22 @@
                       "}")])
 
          (define impl:Polygon (first impls))
-
          (syntax-parse (implement impl:Polygon)
            #:literals (begin define-values make-struct-type define quote)
            ;#:datum-literals (Red Green Blue)
            [(begin
               (define-values (%type-m %m %m? %get %set!)
                 (make-struct-type ':id #f 2 0))
-
               (define (%make-m #:vertices [:id '()] #:fill [:id %def-color])
                 (%m~ :id :id))
-
               (define (%get-v _) (%get~ _ 0))
               (define (%get-f _) (_     _ 1))
-
               (define M? %m?~)
               (define def-M (%make-m~)))
 
             (check-free-id=? #'%def-color
                              (implementation-default-id
-                              (get-or-queue-impl ".test1.Color")))
-
-            'ok]
+                              (get-or-queue-impl ".test1.Color")))]
 
            [s
             (fail (format "impl msg syntax: ~v"
