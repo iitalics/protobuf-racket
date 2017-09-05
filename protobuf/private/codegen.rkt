@@ -166,9 +166,8 @@
      #:with def-m (implementation-default-id impl)
      #:with mk-m (generate-temporary #'%mk-m)
 
-     #:do [(define regular-fields
-             (filter (negate dsctor:field-oneof)
-                     fields))]
+     #:do [(define-values (oneof-fields regular-fields)
+             (partition dsctor:field-oneof fields))]
 
      #:with [(oo-index
               oo-kw
@@ -199,6 +198,17 @@
                     (type-default-stx (dsctor:field-type dsc)
                       #:repeated? (dsctor:field-repeated? dsc))))
 
+     #:with [(oofld-index
+              oofld-case-name
+              oofld-default-expr) ...]
+            (for/list ([dsc (in-list oneof-fields)])
+              (let* ([oo-index (index-of oneofs (dsctor:field-oneof dsc))]
+                     [i        (add1 (* 2 oo-index))])
+                (list #`#,i
+                      (string->symbol (dsctor-name dsc))
+                      (type-default-stx (dsctor:field-type dsc)))))
+
+
      #:with [(kw+arg ...) ...]
             #'[(fld-kw [fld-init-arg fld-default-expr]) ...
                (oo-kw-case [oo-init-arg-case #f]) ...
@@ -209,17 +219,20 @@
             #'[(oo-init-arg-case oo-init-arg) ...]
 
      #:with fullname-sym (string->symbol (implementation-name impl))
-     #:with (m-get-fld ...) (generate-temporaries #'(fld-init-arg ...))
-     #:with (m-get-oo-case ...) (generate-temporaries #'(oo-init-arg ...))
+     #:with (m-get-fld ...) (generate-temporaries regular-fields)
+     #:with (m-get-oofld ...) (generate-temporaries oneof-fields)
+     #:with (m-get-oo-case ...) (generate-temporaries oneofs)
 
      (values
       (append (list (renaming #'m? "~a?")
                     (renaming #'def-m "default-~a")
                     (renaming #'mk-m "make-~a"))
+
               (stx-map (λ (id field-dsc)
                          (renaming id (format "~~a-~a" (dsctor-name field-dsc))))
-                       #'[m-get-fld ...]
-                       regular-fields)
+                       #'[     m-get-fld ...   m-get-oofld ...]
+                       (append regular-fields  oneof-fields))
+
               (stx-map (λ (id oneof-dsc)
                          (renaming id (format "~~a-~a-case" (dsctor-name oneof-dsc))))
                        #'[m-get-oo-case ...]
@@ -242,6 +255,12 @@
 
           (define (m-get-fld m)
             (idx-get m fld-index)) ...
+
+          (define (m-get-oofld m)
+            (if (eq? 'oofld-case-name
+                     (idx-get m (sub1 oofld-index)))
+                (idx-get m oofld-index)
+                oofld-default-expr)) ...
 
           (define m? strct?)
           (define def-m (mk-m))))]))
