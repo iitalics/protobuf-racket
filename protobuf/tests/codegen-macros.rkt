@@ -64,4 +64,11 @@
   (check-equal? (move-speed-case fast) 'fwd)
   (check-equal? (move-precise fast) #f)
 
+  (check-equal? (move-sec fast) 1.0)
+  (check-equal? (move-fwd fast) 256.0)
+
+  (check-equal? (move-ms fast) 0)
+  (check-equal? (move-bwd fast) 0.0)
+  (check-equal? (move-ang fast) 0.0)
+
   )
