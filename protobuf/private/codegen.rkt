@@ -137,24 +137,22 @@
 ;; as well as the syntax to define all the new identifiers.
 ;;
 ;; defines:
-;;                                                    [TODO]
 ;;   {msg}?                   : any -> bool
 ;;   default-{msg}            : msg
-;;   make-{msg}               : #:{field} field ... -> msg
+;;   make-{msg}               : #:{field} val ... -> msg
 ;;
-;;   for regular fields:                              [TODO]
-;;     {msg}-{field}          : msg -> field
+;;   for regular fields:
+;;     {msg}-{field}          : msg -> val
 ;;
-;;   for oneofs:                                      [TODO]
-;;     (same as regular fields)
-;;       +
-;;     {msg}-has-{oneof}?     : msg -> bool
+;;   for oneofs:
 ;;     {msg}-{oneof}-case     : msg -> symbol
+;;     {msg}-has-{field}?     : msg -> bool    [TODO]
+;;     {msg}-{field}          : msg -> val     [TODO]
 ;;
-;;   for repeated fields:                             [TODO]
-;;     {msg}-{field}          : msg -> (listof field)
+;;   for repeated fields:
+;;     {msg}-{field}          : msg -> (listof val)
 ;;
-;;   for map fields:                                  [TODO]
+;;   for map fields:
 ;;     {msg}-{field}          : msg -> (immutable-hash key => val)
 ;;
 ;; implement-enum : implementation? dsctor:enum? -> (listof renaming?) stx?
@@ -198,9 +196,8 @@
               (list #`#,i
                     (string->keyword (dsctor-name dsc))
                     (generate-temporary #'%msg-init)
-                    (type-default-stx
-                     (dsctor:field-type dsc)
-                     #:repeated? (dsctor:field-repeated? dsc))))
+                    (type-default-stx (dsctor:field-type dsc)
+                      #:repeated? (dsctor:field-repeated? dsc))))
 
      #:with [(kw+arg ...) ...]
             #'[(fld-kw [fld-init-arg fld-default-expr]) ...
