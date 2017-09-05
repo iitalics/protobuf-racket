@@ -66,7 +66,7 @@
            [(begin
               (define-values (%type-m %m %m? %get %set!)
                 (make-struct-type ':id #f 2 0))
-              (define (%make-m #:x [:id '0] #:y [:id '""])
+              (define (%make-m #:x [:id 0] #:y [:id ""])
                 (%m~ :id :id))
               (define (%get-x _) (%get~ _ 0))
               (define (%get-y _) (_     _ 1))
@@ -143,7 +143,7 @@
               (define-values (_ ...)
                 (make-struct-type ':id #f 5 0))
 
-              (define (%make-m #:precise [%p '#f]
+              (define (%make-m #:precise [%p #f]
                                #:speed-case [%sc #f]
                                #:duration-case [%dc #f]
                                #:speed [%s (and %sc~ (error %sc-err))]

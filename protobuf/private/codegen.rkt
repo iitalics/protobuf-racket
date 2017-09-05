@@ -253,11 +253,11 @@
 
 (define (builtin-type-default-stx ty)
   (case ty
-    [(bool)     #''#f]
-    [(string)   #''""]
-    [(bytes)    #''#""]
-    [(float double) #''0.0]
-    [else       #''0]))
+    [(bool)     #'#f]
+    [(string)   #'""]
+    [(bytes)    #'#""]
+    [(float double) #'0.0]
+    [else       #'0]))
 
 (define (type-default-stx ty #:repeated? [repeated? #f])
   (cond
