@@ -199,14 +199,16 @@
                       #:repeated? (dsctor:field-repeated? dsc))))
 
      #:with [(oofld-index
+              oofld-oneof-index
               oofld-case-name
               oofld-default-expr) ...]
             (for/list ([dsc (in-list oneof-fields)])
-              (let* ([oo-index (index-of oneofs (dsctor:field-oneof dsc))]
-                     [i        (add1 (* 2 oo-index))])
-                (list #`#,i
-                      (string->symbol (dsctor-name dsc))
-                      (type-default-stx (dsctor:field-type dsc)))))
+              (define i
+                (index-of oneofs (dsctor:field-oneof dsc)))
+              (list #`#,(add1 (* 2 i))
+                    #`#,      (* 2 i)
+                    (string->symbol (dsctor-name dsc))
+                    (type-default-stx (dsctor:field-type dsc))))
 
 
      #:with [(kw+arg ...) ...]
@@ -258,7 +260,7 @@
 
           (define (m-get-oofld m)
             (if (eq? 'oofld-case-name
-                     (idx-get m (sub1 oofld-index)))
+                     (idx-get m oofld-oneof-index))
                 (idx-get m oofld-index)
                 oofld-default-expr)) ...
 
