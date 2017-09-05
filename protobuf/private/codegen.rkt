@@ -168,33 +168,25 @@
      #:with def-m (implementation-default-id impl)
      #:with mk-m (generate-temporary #'%mk-m)
 
-     #:do [(define (regular-field dsc idx)
-             (with-syntax ([init-var (generate-temporary #'%msg-init)]
-                           [default (type-default-stx (dsctor:field-type dsc))]
-                           [KW (string->keyword (dsctor-name dsc))])
-               (list #'[KW [init-var default]]
-                     #'init-var)))
+     #:with [(fld-index
+              fld-kw
+              fld-init-arg
+              fld-default-expr) ...]
+            (for/list ([dsc (in-list fields)]
+                       [i (in-naturals)]
+                       #:when (not (dsctor:field-oneof dsc)))
+              (list i
+                    (string->keyword (dsctor-name dsc))
+                    (generate-temporary #'%msg-init)
+                    (type-default-stx
+                     (dsctor:field-type dsc)
+                     #:repeated? (dsctor:field-repeated? dsc))))
 
-           (define (repeated-field dsc idx)
-             (with-syntax ([init-var (generate-temporary #'%msg-init)]
-                           [KW (string->keyword (dsctor-name dsc))])
-               (list #'[KW [init-var '()]]
-                     #'init-var)))
-           ]
+     #:with [(kw+arg ...) ...]
+            #'[(fld-kw [fld-init-arg fld-default-expr]) ...]
 
      #:with fullname-sym (string->symbol (implementation-name impl))
-     #:with (field-i ...) (range (length fields))
-     #:with (m-get ...) (generate-temporaries #'(field-i ...))
-
-     #:with [([in-arg ...] init-expr) ...]
-            (for/list ([field-dsc (in-list fields)]
-                       [idx (in-syntax #'[field-i ...])]
-                       #:when (not (dsctor:field-oneof field-dsc)))
-              (cond
-                [(dsctor:field-repeated? field-dsc)
-                 (repeated-field field-dsc idx)]
-                [else
-                 (regular-field field-dsc idx)]))
+     #:with (m-get ...) (generate-temporaries #'(fld-init-arg ...))
 
      (values
       (list* (renaming #'m? "~a?")
@@ -209,11 +201,11 @@
           (define-values (msg-strct make-strct strct? idx-get idx-set!)
             (make-struct-type 'fullname-sym #f #,(length fields) 0))
 
-          (define (mk-m in-arg ... ...)
-            (make-strct init-expr ...))
+          (define (mk-m kw+arg ... ...)
+            (make-strct fld-init-arg ...))
 
           (define (m-get m)
-            (idx-get m 'field-i)) ...
+            (idx-get m 'fld-index)) ...
 
           (define m? strct?)
           (define def-m (mk-m))))]))
@@ -228,9 +220,8 @@
     [(float double) #''0.0]
     [else       #''0]))
 
-(define (type-default-stx ty)
+(define (type-default-stx ty #:repeated? [repeated? #f])
   (cond
-    [(string? ty)
-     (implementation-default-id (get-or-queue-impl ty))]
-    [else
-     (builtin-type-default-stx ty)]))
+    [repeated?    #''()]
+    [(string? ty) (implementation-default-id (get-or-queue-impl ty))]
+    [else         (builtin-type-default-stx ty)]))
