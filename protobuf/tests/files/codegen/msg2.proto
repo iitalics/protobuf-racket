@@ -1,0 +1,15 @@
+syntax = "proto3";
+package codegen;
+
+message Move {
+    oneof speed {
+        float fwd = 1;
+        float bwd = 2;
+        float ang = 3;
+    }
+    oneof duration {
+        float sec = 4;
+        uint32 ms = 5;
+    }
+    bool precis = 9;
+}

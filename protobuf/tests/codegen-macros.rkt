@@ -26,7 +26,6 @@
 
 
 
-
   (generate-protobuf #:extra-proto-path "files/codegen"
                      #:source "msg1.proto"
                      [codegen.Person person])
@@ -42,5 +41,27 @@
   (check-equal? (person-name default-person) "")
   (check-equal? (person-age default-person) 0)
   (check-equal? (person-gf default-person) #f)
+
+
+  (generate-protobuf #:extra-proto-path "files/codegen"
+                     #:source "msg2.proto"
+                     [codegen.Move move])
+
+  (define moves
+    (list (make-move #:duration-case 'sec
+                     #:duration 30
+                     #:speed-case 'fwd
+                     #:speed 128)
+          (make-move #:duration-case 'ms
+                     #:duration 4500
+                     #:speed-case 'ang
+                     #:speed -64)))
+
+  (check-equal? (map move-speed-case moves) '(fwd ang))
+  (check-equal? (map move-duration-case moves) '(sec ms))
+
+  (check-exn
+   exn? (λ ()
+          (make-move #:duration-case 'sec)))
 
   )
