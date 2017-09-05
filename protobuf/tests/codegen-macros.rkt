@@ -47,21 +47,21 @@
                      #:source "msg2.proto"
                      [codegen.Move move])
 
-  (define moves
-    (list (make-move #:duration-case 'sec
-                     #:duration 30
-                     #:speed-case 'fwd
-                     #:speed 128)
-          (make-move #:duration-case 'ms
-                     #:duration 4500
-                     #:speed-case 'ang
-                     #:speed -64)))
-
-  (check-equal? (map move-speed-case moves) '(fwd ang))
-  (check-equal? (map move-duration-case moves) '(sec ms))
-
   (check-exn
    exn? (λ ()
-          (make-move #:duration-case 'sec)))
+          (make-move #:duration-case 'sec
+                     ;; #:duration not supplied!
+                     )))
+
+  (define fast
+    (make-move #:duration-case 'sec
+               #:duration 1.0
+               #:speed-case 'fwd
+               #:speed 256.0))
+
+  (check-pred move? fast)
+  (check-equal? (move-duration-case fast) 'sec)
+  (check-equal? (move-speed-case fast) 'fwd)
+  (check-equal? (move-precise fast) #f)
 
   )

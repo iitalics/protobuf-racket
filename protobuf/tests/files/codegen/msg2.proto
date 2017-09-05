@@ -11,5 +11,5 @@ message Move {
         float sec = 4;
         uint32 ms = 5;
     }
-    bool precis = 9;
+    bool precise = 9;
 }
