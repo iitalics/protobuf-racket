@@ -183,7 +183,7 @@
                     (string->keyword (format "~a-case" (dsctor-name dsc)))
                     (generate-temporary #'%oo-init)
                     (generate-temporary #'%oo-init-case)
-                    (format "keyword argument #:~a must be supplied when #:~a-case is suppied"
+                    (format "keyword argument #:~a must be supplied when #:~a-case is"
                             (dsctor-name dsc)
                             (dsctor-name dsc))))
 

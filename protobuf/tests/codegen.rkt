@@ -146,8 +146,8 @@
               (define (%make-m #:precise [%p #f]
                                #:speed-case [%sc #f]
                                #:duration-case [%dc #f]
-                               #:speed [%s (and %sc~ (error %sc-err))]
-                               #:duration [%d (and _ (error _))])
+                               #:speed [%s (and %sc~ (error '%sc-err))]
+                               #:duration [%d (and _ (error '_))])
                 (_ %sc~~ %s~ %dc~ %d~ %p~))
               (define (%speed-case _)    (%get  _ 0))
               (define (%duration-case _) (%get~ _ 2))
@@ -160,7 +160,9 @@
             (check-free-id=? #'%sc #'%sc~~)
             (check-free-id=? #'%d #'%d~)
             (check-free-id=? #'%dc #'%dc~)
-            (check-free-id=? #'%get #'%get~)]
+            (check-free-id=? #'%get #'%get~)
+            (check-equal? (syntax-e #'%sc-err)
+                          "keyword argument #:speed must be supplied when #:speed-case is")]
 
            [s
             (fail (format "impl msg syntax: ~v"
