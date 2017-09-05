@@ -145,8 +145,8 @@
 
               (define (%make-m #:precise [%p '#f]
                                #:speed-case [%sc #f]
-                               #:speed [%s (and %sc~ (error %sc-err))]
                                #:duration-case [%dc #f]
+                               #:speed [%s (and %sc~ (error %sc-err))]
                                #:duration [%d (and _ (error _))])
                 (_ %sc~~ %s~ %dc~ %d~ %p~))
 
