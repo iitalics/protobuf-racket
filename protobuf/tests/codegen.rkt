@@ -118,5 +118,48 @@
                           (syntax->datum #'s)))]))))
 
 
+    (check-not-exn
+     (λ ()
+       (let ([impls (implement/tmp '(".test3.Move")
+                      "syntax = 'proto3';"
+                      "package test3;"
+                      "message Move {"
+                      "  oneof speed {"
+                      "    float fwd = 1;"
+                      "    float bwd = 2;"
+                      "    float turn = 3;"
+                      "  }"
+                      "  oneof duration {"
+                      "    float sec = 4;"
+                      "    uint32 ms = 5;"
+                      "  }"
+                      "  bool precise = 6;"
+                      "}")])
+
+         (define impl:Move (first impls))
+         (syntax-parse (implement impl:Move)
+           #:literals (begin define-values make-struct-type define quote and error)
+           [(begin
+              (define-values (_ ...)
+                (make-struct-type ':id #f 5 0))
+
+              (define (%make-m #:precise [%p '#f]
+                               #:speed-case [%sc #f]
+                               #:speed [%s (and %sc~ (error %sc-err))]
+                               #:duration-case [%dc #f]
+                               #:duration [%d (and _ (error _))])
+                (_ %sc~~ %s~ %dc~ %d~ %p~))
+
+              _ ...)
+
+            (check-free-id=? #'%p #'%p~)
+            (check-free-id=? #'%sc #'%sc~)
+            (check-free-id=? #'%sc #'%sc~~)
+            (check-free-id=? #'%d #'%d~)
+            (check-free-id=? #'%dc #'%dc~)]
+
+           [s
+            (fail (format "impl msg syntax: ~v"
+                          (syntax->datum #'s)))]))))
 
     ))
