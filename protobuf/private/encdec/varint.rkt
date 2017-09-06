@@ -1,5 +1,6 @@
 #lang racket/base
-(provide read-varint)
+(provide read-varint
+         write-varint)
 
 (define (must-read-byte in)
   (define b (read-byte in))
@@ -13,6 +14,8 @@
   (bitwise-and x #x80))
 (define (lsbs-of x)
   (bitwise-and x #x7f))
+(define (pop-lsbs x)
+  (arithmetic-shift x -7))
 
 ;; read-varint : [input-port?] -> exact-nonnegative-integer?
 (define (read-varint [in (current-input-port)])
@@ -25,3 +28,11 @@
        (+ shf 7))))
 
   int)
+
+;; write-varint : exact-nonnegative-integer? [output-port?] -> void?
+(define (write-varint x [out (current-output-port)])
+  (let loop ([x x])
+    (define msb (if (>= x 128) #x80 #x00))
+    (write-byte (+ msb (lsbs-of x)) out)
+    (unless (zero? msb)
+      (loop (pop-lsbs x)))))
