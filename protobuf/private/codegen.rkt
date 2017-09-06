@@ -322,3 +322,35 @@
        (dsctor-option (hash-ref (all-descriptors) ty)
                       "map_entry"
                       #f)))
+
+
+;; -- identifier lispification --
+
+;; "lispify" a string, converting underscore and
+;; camelcase into dashes.
+(define (lispify s)
+  (with-output-to-string
+    (λ ()
+      (for/fold ([lo? #f])
+                ([c (in-string s)])
+        (cond
+          [(eqv? c #\_)
+           (write-char #\-)
+           #f]
+
+          [(and (char-upper-case? c) lo?)
+           (write-char #\-)
+           (write-char (char-downcase c))
+           #f]
+
+          [else
+           (write-char (char-downcase c))
+           (char-lower-case? c)])))))
+
+(module+ test
+  (require rackunit)
+  (check-equal? (lispify "UpperCamelCase") "upper-camel-case")
+  (check-equal? (lispify "lowerCamelCase") "lower-camel-case")
+  (check-equal? (lispify "snake_case") "snake-case")
+  (check-equal? (lispify "Mixed_Ugly_Case") "mixed-ugly-case")
+  (check-equal? (lispify "JUST_REMEMBER_ALL_CAPS") "just-remember-all-caps"))
