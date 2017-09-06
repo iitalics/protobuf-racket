@@ -86,6 +86,7 @@
   (check-false (move-has-ms? mv))
 
 
+
   ;;; test map fields
 
   (generate-protobuf #:extra-proto-path "files/codegen"
@@ -97,7 +98,7 @@
     (make-graph #:vertices
                 (hash "A" (make-vert #:edges '("B" "C"))
                       "B" (make-vert #:edges '("C"))
-                      "C" (make-vert #:edges '()))))
+                      "C" (make-vert))))
 
   (check-equal? (vert-edges (graph-vertices-ref g "A")) '("B" "C"))
   (check-equal? (vert-edges (graph-vertices-ref g "B")) '("C"))
