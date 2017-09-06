@@ -5,9 +5,9 @@
            rackunit
            racket/file
            "utils.rkt"
-           "../private/compiler.rkt"
            "../private/descriptors.rkt"
-           "../private/dependencies.rkt")
+           "../private/compiler/compiler.rkt"
+           "../private/compiler/dependencies.rkt")
 
 
   (parameterize ([all-descriptors (make-hash)])

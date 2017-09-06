@@ -1,6 +1,6 @@
 #lang racket
 (require "descriptors.rkt"
-         "compiler.rkt"
+         "compiler/compiler.rkt"
          racket/syntax
          syntax/parse
          syntax/stx
@@ -11,7 +11,10 @@
          (struct-out renaming)
          current-impl-queue
          get-or-queue-impl
-         implement)
+         implement
+
+         dsctor-lisp-name
+         lispify)
 
 
 ;; a struct representing an implementation of a protobuf type

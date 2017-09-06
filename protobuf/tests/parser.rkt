@@ -2,9 +2,9 @@
 
 (module+ test
   (require rackunit
-           "../private/lexer.rkt"
-           "../private/parser.rkt"
-           "../private/ast.rkt"
+           "../private/compiler/lexer.rkt"
+           "../private/compiler/parser.rkt"
+           "../private/compiler/ast.rkt"
            parser-tools/lex
            (for-syntax racket/base
                        syntax/parse

@@ -3,7 +3,7 @@
 (module+ test
   (require rackunit
            racket/path
-           "../private/dependencies.rkt")
+           "../private/compiler/dependencies.rkt")
 
   (define (cd [p "."])
     (simple-form-path p))

@@ -1,7 +1,7 @@
 #lang racket
 (provide (all-defined-out))
-(require "../private/compiler.rkt"
-         "../private/dependencies.rkt"
+(require "../private/compiler/compiler.rkt"
+         "../private/compiler/dependencies.rkt"
          "../private/codegen.rkt")
 
 

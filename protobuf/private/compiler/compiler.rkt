@@ -1,7 +1,7 @@
 #lang racket
 (require "ast.rkt"
          "dependencies.rkt"
-         "descriptors.rkt"
+         "../descriptors.rkt"
          racket/hash
          racket/generator
          racket/stxparam
@@ -16,13 +16,6 @@
          all-descriptors
          recursive-descent
          compile-root)
-
-
-;;; once this module works, it needs to be split into smaller sub-modules
-;;; i'm considering
-;;; compiler/base.rkt         exceptions, parameters, scope utilities
-;;; compiler/macros.rkt       macros like define-nano-pass, etc.
-;;; compiler/compiler.rkt     compiler function implementations
 
 
 

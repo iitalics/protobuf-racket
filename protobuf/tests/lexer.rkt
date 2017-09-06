@@ -3,7 +3,7 @@
 (module+ test
   (require rackunit
            parser-tools/lex
-           "../private/lexer.rkt"
+           "../private/compiler/lexer.rkt"
            (for-syntax syntax/parse))
 
   (define-syntax lex-test

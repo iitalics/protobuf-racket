@@ -1,8 +1,8 @@
 #lang racket/base
 
 (module+ test
-  (require "../private/dependencies.rkt"
-           "../private/ast.rkt"
+  (require "../private/compiler/dependencies.rkt"
+           "../private/compiler/ast.rkt"
            rackunit
            racket/path
            (for-syntax racket/base syntax/parse))
