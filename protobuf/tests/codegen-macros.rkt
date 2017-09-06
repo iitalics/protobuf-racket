@@ -61,30 +61,29 @@
                      ;; #:duration not supplied!
                      )))
 
-  (define fast
+  (define mv
     (make-move #:duration-case 'sec
                #:duration 1.0
-               #:speed-case 'fwd
+               #:speed-case 'fwd-speed
                #:speed 256.0))
 
-  (check-pred move? fast)
-  (check-equal? (move-duration-case fast) 'sec)
-  (check-equal? (move-speed-case fast) 'fwd)
-  (check-equal? (move-precise fast) #f)
+  (check-pred move? mv)
+  (check-equal? (move-duration-case mv) 'sec)
+  (check-equal? (move-speed-case mv) 'fwd-speed)
+  (check-equal? (move-precise mv) #f)
 
-  (check-equal? (move-sec fast) 1.0)
-  (check-equal? (move-fwd fast) 256.0)
+  (check-equal? (move-sec mv) 1.0)
+  (check-equal? (move-fwd-speed mv) 256.0)
 
-  (check-equal? (move-ms fast) 0)
-  (check-equal? (move-bwd fast) 0.0)
-  (check-equal? (move-ang fast) 0.0)
+  (check-equal? (move-ms mv) 0)
+  (check-equal? (move-bwd-speed mv) 0.0)
+  (check-equal? (move-ang-speed mv) 0.0)
 
-  (check-true (move-has-fwd? fast))
-  (check-false (move-has-bwd? fast))
-  (check-false (move-has-ang? fast))
-  (check-true (move-has-sec? fast))
-  (check-false (move-has-ms? fast))
-
+  (check-true (move-has-fwd-speed? mv))
+  (check-false (move-has-bwd-speed? mv))
+  (check-false (move-has-ang-speed? mv))
+  (check-true (move-has-sec? mv))
+  (check-false (move-has-ms? mv))
 
 
   ;;; test map fields

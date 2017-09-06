@@ -3,9 +3,9 @@ package codegen;
 
 message Move {
     oneof speed {
-        float fwd = 1;
-        float bwd = 2;
-        float ang = 3;
+        float fwd_speed = 1;
+        float bwd_speed = 2;
+        float ang_speed = 3;
     }
     oneof duration {
         float sec = 4;

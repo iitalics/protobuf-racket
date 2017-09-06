@@ -184,14 +184,14 @@
               oo-no-arg-msg) ...]
             (for/list ([dsc (in-list oneofs)]
                        [i (in-naturals)])
+              (define name (dsctor-lisp-name dsc))
               (list #`#,(* 2 i)
-                    (string->keyword (dsctor-name dsc))
-                    (string->keyword (format "~a-case" (dsctor-name dsc)))
+                    (string->keyword name)
+                    (string->keyword (format "~a-case" name))
                     (generate-temporary #'%oo-init)
                     (generate-temporary #'%oo-init-case)
                     (format "keyword argument #:~a must be supplied when #:~a-case is"
-                            (dsctor-name dsc)
-                            (dsctor-name dsc))))
+                            name name)))
 
      #:with [(fld-index
               fld-kw
@@ -200,7 +200,7 @@
             (for/list ([dsc (in-list regular-fields)]
                        [i (in-naturals fld-index-start)])
               (list #`#,i
-                    (string->keyword (dsctor-name dsc))
+                    (string->keyword (dsctor-lisp-name dsc))
                     (generate-temporary #'%msg-init)
                     (type-default-stx (dsctor:field-type dsc)
                       #:repeated? (dsctor:field-repeated? dsc))))
@@ -214,7 +214,7 @@
                 (index-of oneofs (dsctor:field-oneof dsc)))
               (list #`#,(add1 (* 2 i))
                     #`#,      (* 2 i)
-                    (string->symbol (dsctor-name dsc))
+                    (string->symbol (dsctor-lisp-name dsc))
                     (type-default-stx (dsctor:field-type dsc))))
 
      #:with [(mapfld-index
@@ -243,26 +243,21 @@
      #:with (m-get-oofld ...) (generate-temporaries oneof-fields)
      #:with (m-mapfld-ref ...) (generate-temporaries map-fields)
 
+     #:do [(define (renamings/format fmt ids descriptors)
+             (stx-map (λ (id dsc) (renaming id (format fmt (dsctor-lisp-name dsc))))
+                      ids
+                      descriptors))]
+
      (values
       (append (list (renaming #'m? "~a?")
                     (renaming #'def-m "default-~a")
                     (renaming #'mk-m "make-~a"))
-
-              (stx-map (λ (id dsc) (renaming id (format "~~a-~a" (dsctor-name dsc))))
-                       #'[     m-get-fld ...   m-get-oofld ...]
-                       (append regular-fields  oneof-fields))
-
-              (stx-map (λ (id dsc) (renaming id (format "~~a-~a-case" (dsctor-name dsc))))
-                       #'[m-get-oo-case ...]
-                       oneofs)
-
-              (stx-map (λ (id dsc) (renaming id (format "~~a-has-~a?" (dsctor-name dsc))))
-                       #'[m-has-oofld? ...]
-                       oneof-fields)
-
-              (stx-map (λ (id dsc) (renaming id (format "~~a-~a-ref" (dsctor-name dsc))))
-                       #'[m-mapfld-ref ...]
-                       map-fields))
+              (renamings/format "~~a-~a"
+                                #'[m-get-fld ... m-get-oofld ...]
+                                (append regular-fields oneof-fields))
+              (renamings/format "~~a-~a-case" #'[m-get-oo-case ...] oneofs)
+              (renamings/format "~~a-has-~a?" #'[m-has-oofld? ...] oneof-fields)
+              (renamings/format "~~a-~a-ref" #'[m-mapfld-ref ...] map-fields))
 
       #`(begin
           (define-values (msg-strct make-strct strct? idx-get idx-set!)
@@ -325,6 +320,13 @@
 
 
 ;; -- identifier lispification --
+
+;; get the name of the given identifier and convert it to
+;; a lispy format
+;; dsctor-lisp-name : dsctor? -> string?
+(define (dsctor-lisp-name dsc)
+  ;; TODO: allow descriptor option to customize this
+  (lispify (dsctor-name dsc)))
 
 ;; "lispify" a string, converting underscore and
 ;; camelcase into dashes.
