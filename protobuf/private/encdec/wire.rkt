@@ -1,5 +1,6 @@
 #lang racket/base
 (require "util.rkt" "varint.rkt"
+         racket/contract/base
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse))
@@ -7,7 +8,8 @@
 (provide uint->sint/2c
          uint->sint/zz
          read-fixed64 read-sfixed64 read-double
-         read-fixed32 read-sfixed32 read-float)
+         read-fixed32 read-sfixed32 read-float
+         read-field-number+type)
 
 ;; convert unsigned integer to signed integer
 ;; using two's complement, e.g.
@@ -62,3 +64,28 @@
   (integer-bytes->integer _ #t #f _))
 (define-fixed-bytes-reader read-float 32
   (floating-point-bytes->real _ #f _))
+
+
+;; wire types as described by the protocol buffers guide. the deprecated
+;; wire types ("start group" and "end group") are not included
+(define wire-type?
+  (or/c 'varint '64-bit '32-bit 'length-delim))
+
+
+;; reads and returns two values: the field number, and the wire type
+;; of the field. encoded using just a varint and a bit-shift.
+;;
+;; read-field-number+type : [input-port?] -> exact-integer? wire-type?
+(define (read-field-number+type [in (current-input-port)])
+  (define n (read-varint in))
+  (define wire-type (bitwise-and n 7))
+  (define field-num (arithmetic-shift n -3))
+  (case wire-type
+    [(0) (values field-num 'varint)]
+    [(1) (values field-num '64-bit)]
+    [(2) (values field-num 'length-delim)]
+    [(5) (values field-num '32-bit)]
+    [else
+     (raise (exn:fail:read "encountered invalid or deprecated wire type"
+                           (current-continuation-marks)
+                           '()))]))
