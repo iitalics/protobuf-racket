@@ -1,14 +1,7 @@
 #lang racket/base
+(require "util.rkt")
 (provide read-varint
          write-varint)
-
-(define (must-read-byte in)
-  (define b (read-byte in))
-  (if (eof-object? b)
-      (raise (exn:fail:read:eof "port ended while reading varint"
-                                (current-continuation-marks)
-                                '()))
-      b))
 
 (define (msb-of x)
   (bitwise-and x #x80))
