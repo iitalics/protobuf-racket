@@ -336,26 +336,25 @@
 (define (lispify s)
   (with-output-to-string
     (λ ()
-      (for/fold ([lo? #f])
+      (for/fold ([prev-chr-locase? #f])
                 ([c (in-string s)])
-        (cond
-          [(eqv? c #\_)
-           (write-char #\-)
-           #f]
 
-          [(and (char-upper-case? c) lo?)
-           (write-char #\-)
-           (write-char (char-downcase c))
-           #f]
+        (when (or (eqv? c #\_)
+                  (and prev-chr-locase? (char-upper-case? c)))
+          (write-char #\-))
 
-          [else
-           (write-char (char-downcase c))
-           (char-lower-case? c)])))))
+        (when (not (eqv? c #\_))
+          (write-char (char-downcase c)))
+
+        (or (char-lower-case? c)
+            (char-numeric? c))))))
 
 (module+ test
   (require rackunit)
   (check-equal? (lispify "UpperCamelCase") "upper-camel-case")
   (check-equal? (lispify "lowerCamelCase") "lower-camel-case")
   (check-equal? (lispify "snake_case") "snake-case")
+  (check-equal? (lispify "with_number123") "with-number123")
+  (check-equal? (lispify "Act1Scene2") "act1-scene2")
   (check-equal? (lispify "Mixed_Ugly_Case") "mixed-ugly-case")
   (check-equal? (lispify "JUST_REMEMBER_ALL_CAPS") "just-remember-all-caps"))
