@@ -9,11 +9,10 @@
          uint->sint32/2c
          uint->sint64/2c
          uint->sint/zz
-         read-fixed64 read-sfixed64 read-double
-         read-fixed32 read-sfixed32 read-float
+         decode-fixed64 decode-sfixed64 decode-double
+         decode-fixed32 decode-sfixed32 decode-float
          decode-length-delim
-         decode-field-number+type
-         read-field-number+type)
+         decode-field-number+type)
 
 ;; convert unsigned integer to signed integer
 ;; using two's complement, e.g.
@@ -44,50 +43,46 @@
       (- 0 (arithmetic-shift x -1) 1)))
 
 
-;; (define-fixed-bytes-r/d T bits (func args ...))
-;; defines functions 'read-T' and 'decode-T' which read
-;; the given number of bits, and send them to the given
-;; function.
-;; the first _ in the args list is replaced by the input
+;; (define-fixed-bytes T bits (func args ...))
+;; defines function 'decode-T' which reads a fixed number
+;; of bits, and passes them to the given function.
+;; the first _ in the args list is replaced by the read
 ;; bytes, and the second _ in the args list is replaced
 ;; by the start index and length
 ;;
 ;; e.g.
-;;    (define-fixed-bytes-d/r fixed64 64 (integer-bytes->integer _ #f #f _))
+;;    (define-fixed-bytes fixed64 64 (integer-bytes->integer _ #f #f _))
 ;;  will call
 ;;    (integer-bytes->integer bs #f #f start-idx 8)
-(define-syntax define-fixed-bytes-d/r
+(define-syntax define-fixed-bytes
   (syntax-parser
     [(_ T bits:nat (func pre-arg ... (~datum _) mid-arg ... (~datum _) post-arg ...))
      #:with byts (datum->syntax this-syntax (/ (syntax-e #'bits) 8))
      #:with decode-T (format-id #'T "decode-~a" #'T)
-     #:with read-T (format-id #'T "read-~a" #'T)
-     #'(begin
-         (define (decode-T bs i)
-           (values (check-len bs i byts)
-                   (func pre-arg ... bs
-                         mid-arg ... 0 byts
-                         post-arg ...)))
-         (define-reader-from-decoder read-T decode-T))]))
+     ;#:with read-T (format-id #'T "read-~a" #'T)
+     #'(define (decode-T bs i)
+         (values (check-len bs i byts)
+                 (func pre-arg ... bs
+                       mid-arg ... 0 byts
+                       post-arg ...)))]))
 
 
-;; decode/read a number that has a fixed number
+;; decode a number that has a fixed number
 ;; of bytes representation. all are encoded in
 ;; little endian, and vary in signedness / floating point.
 ;;
 ;; decode-T : bytes? pos? -> pos? X
-;; read-T : [input-port?] -> exact-integer?
-(define-fixed-bytes-d/r fixed64 64
+(define-fixed-bytes fixed64 64
   (integer-bytes->integer _ #f #f _))
-(define-fixed-bytes-d/r sfixed64 64
+(define-fixed-bytes sfixed64 64
   (integer-bytes->integer _ #t #f _))
-(define-fixed-bytes-d/r double 64
+(define-fixed-bytes double 64
   (floating-point-bytes->real _ #f _))
-(define-fixed-bytes-d/r fixed32 32
+(define-fixed-bytes fixed32 32
   (integer-bytes->integer _ #f #f _))
-(define-fixed-bytes-d/r sfixed32 32
+(define-fixed-bytes sfixed32 32
   (integer-bytes->integer _ #t #f _))
-(define-fixed-bytes-d/r float 32
+(define-fixed-bytes float 32
   (floating-point-bytes->real _ #f _))
 
 ;; decode a length delimeted sequence of bytes.
@@ -121,7 +116,3 @@
      (raise (exn:fail:read "encountered invalid or deprecated wire type"
                            (current-continuation-marks)
                            '()))]))
-
-;; read-field-number+type : [input-port?] -> (or/c eof-object? (cons/c exact-integer? wire-type?))
-(define-reader-from-decoder read-field-number+type
-  decode-field-number+type)

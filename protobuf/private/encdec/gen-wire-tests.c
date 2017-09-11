@@ -3,28 +3,28 @@
 #include <stdint.h>
 #include <time.h>
 
-void gen_int_test(const char* reader,
+void gen_int_test(const char* decoder,
                   void* ptr,
                   size_t bits,
                   int64_t expected)
 {
-    printf("(check-eqv? (%s (open-input-bytes (bytes", reader);
+    printf("(decode-test check-eqv? %s (bytes", decoder);
     for (size_t i = 0; i < (bits / 8); i++) {
         printf(" #x%x", ((unsigned char*) ptr)[i]);
     }
-    printf("))) %lld)\n", expected);
+    printf(") %lld)\n", expected);
 }
 
-void gen_flo_test(const char* reader,
+void gen_flo_test(const char* decoder,
                   void* ptr,
                   size_t bits,
                   double expected)
 {
-    printf("(check-= (%s (open-input-bytes (bytes", reader);
+    printf("(decode-test check-= %s (bytes", decoder);
     for (size_t i = 0; i < (bits / 8); i++) {
         printf(" %d", ((unsigned char*) ptr)[i]);
     }
-    printf("))) %.3f 0.01)\n", expected);
+    printf(") %.3f 0.01)\n", expected);
 }
 
 
@@ -48,15 +48,15 @@ int main()
         uint32_t u32 = (uint32_t) u64;
         if (i32 < 0) u32 = -i32;
 
-        gen_int_test("read-sfixed64", &i64, 64, i64);
-        gen_int_test("read-fixed64 ", &u64, 64, u64);
-        gen_int_test("read-sfixed32", &i32, 32, i32);
-        gen_int_test("read-fixed32 ", &u32, 32, u32);
+        gen_int_test("decode-sfixed64", &i64, 64, i64);
+        gen_int_test("decode-fixed64 ", &u64, 64, u64);
+        gen_int_test("decode-sfixed32", &i32, 32, i32);
+        gen_int_test("decode-fixed32 ", &u32, 32, u32);
 
         double dbl = rand_signed64() / (double) rand_signed64() * 50000;
         float flt = dbl;
 
-        gen_flo_test("read-double", &dbl, 64, dbl);
-        gen_flo_test("read-float ", &flt, 32, flt);
+        gen_flo_test("decode-double", &dbl, 64, dbl);
+        gen_flo_test("decode-float ", &flt, 32, flt);
     }
 }
