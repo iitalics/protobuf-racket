@@ -25,4 +25,19 @@
                                0)
                 (person "Milo" 0))
 
+
+  (define decode-ints1
+    (message-decoder
+     list
+     []
+     (1 "A" 'int32 0)
+     (2 "B" 'int64 0)
+     (3 "C" 'sint32 0)))
+
+  (check-equal? (decode-ints1 (bytes 8 251 255 255 255 15 ; 0xfffffffb = -5 (32 bit 2's comp)
+                                     16 251 255 255 255 255 255 255 255 255 1 ; -5 (64 bit 2's comp)
+                                     24 9) ; = -5 (zigzag)
+                              0)
+                '(-5 -5 -5))
+
   )

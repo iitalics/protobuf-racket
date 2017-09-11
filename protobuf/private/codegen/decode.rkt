@@ -35,23 +35,31 @@
 
     (define-syntax-class type-encoding
       #:literals (quote)
-      #:datum-literals (uint32 int32 sint32 bytes string)
+      #:datum-literals (bytes string
+                              uint32 int32 sint32
+                              uint64 int64 sint64)
       #:attributes (wire-type decoder replace)
-      (pattern 'uint32
+      (pattern '(~or uint32 uint64)
                #:with wire-type #'varint #:with decoder #'decode-varint
                #:attr replace noop)
+      (pattern '(~or sint32 sint64)
+               #:with wire-type #'varint #:with decoder #'decode-varint
+               #:attr replace (transf #'uint->sint/zz))
+
       (pattern 'int32
                #:with wire-type #'varint #:with decoder #'decode-varint
                #:attr replace (transf #'uint->sint32/2c))
-      (pattern 'sint32
+      (pattern 'int64
                #:with wire-type #'varint #:with decoder #'decode-varint
-               #:attr replace (transf #'uint->sing/zz))
+               #:attr replace (transf #'uint->sint64/2c))
+
       (pattern 'bytes
                #:with wire-type #'length-delim #:with decoder #'decode-length-delim
                #:attr replace noop)
       (pattern 'string
                #:with wire-type #'length-delim #:with decoder #'decode-length-delim
                #:attr replace (transf #'bytes->string/utf-8)))
+
 
     (syntax-parse stx
       [(_ join-fn
