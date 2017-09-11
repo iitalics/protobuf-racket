@@ -41,6 +41,18 @@
   (check-= (read-double (open-input-bytes (bytes 179 37 208 191 0 44 244 64))) 82624.047 0.01)
   (check-= (read-float  (open-input-bytes (bytes 6 96 161 71))) 82624.047 0.01)
 
+  (for ([enc '(#"\x04\x07\x08\x09\x0a"  #"\x02\x0b\x0c")]
+        [dec '((7 8 9 10)               (11 12))])
+    (define-values (i out)
+      (decode-length-delim enc 0))
+    (check-equal? out (list->bytes dec))
+    (check-equal? i (bytes-length enc)))
+
+  (check-exn exn:fail:read?
+             (λ ()
+               (decode-length-delim #"\x06abcd" 0)))
+
+
   (for ([repr '(8      21     66           9)]
         [num  '(1      2      8            1)]
         [type '(varint 32-bit length-delim 64-bit)])

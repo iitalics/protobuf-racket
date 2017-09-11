@@ -6,9 +6,13 @@
                      syntax/parse))
 
 (provide uint->sint/2c
+         uint->sint32/2c
+         uint->sint64/2c
          uint->sint/zz
          read-fixed64 read-sfixed64 read-double
          read-fixed32 read-sfixed32 read-float
+         decode-length-delim
+         decode-field-number+type
          read-field-number+type)
 
 ;; convert unsigned integer to signed integer
@@ -22,6 +26,11 @@
   (if (zero? (bitwise-and (arithmetic-shift 1 (sub1 n-bits)) x))
       x
       (- x (arithmetic-shift 1 n-bits))))
+
+(define (uint->sint32/2c x)
+  (uint->sint/2c x 32))
+(define (uint->sint64/2c x)
+  (uint->sint/2c x 64))
 
 ;; convert unsigned integer to signed integer
 ;; using "ZigZag", e.g.
@@ -62,6 +71,10 @@
          (define-reader-from-decoder read-T decode-T))]))
 
 
+;; decode/read a number that has a fixed number
+;; of bytes representation. all are encoded in
+;; little endian, and vary in signedness / floating point.
+;;
 ;; decode-T : bytes? pos? -> pos? X
 ;; read-T : [input-port?] -> exact-integer?
 (define-fixed-bytes-d/r fixed64 64
@@ -76,6 +89,13 @@
   (integer-bytes->integer _ #t #f _))
 (define-fixed-bytes-d/r float 32
   (floating-point-bytes->real _ #f _))
+
+;; decode a length delimeted sequence of bytes.
+;; decode-length-delim : bytes? pos? -> pos? bytes?
+(define (decode-length-delim bs i)
+  (define-values (j len) (decode-varint bs i))
+  (values (check-len bs j len)
+          (subbytes bs j (+ j len))))
 
 
 ;; wire types as described by the protocol buffers guide. the deprecated
