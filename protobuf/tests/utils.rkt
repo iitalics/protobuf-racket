@@ -2,7 +2,7 @@
 (provide (all-defined-out))
 (require "../private/compiler/compiler.rkt"
          "../private/compiler/dependencies.rkt"
-         "../private/codegen.rkt")
+         "../private/codegen/codegen.rkt")
 
 
 ;; parse the ast:root for a file with the given string lines as contents

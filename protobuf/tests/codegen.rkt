@@ -5,7 +5,7 @@
            syntax/stx
            "utils.rkt"
            "../private/compiler/compiler.rkt"
-           "../private/codegen.rkt")
+           "../private/codegen/codegen.rkt")
 
   (define-syntax-rule (check-free-id=? arg ...)
     (check free-identifier=? arg ...))

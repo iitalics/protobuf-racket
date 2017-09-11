@@ -1,6 +1,6 @@
 #lang racket
-(require "descriptors.rkt"
-         "compiler/compiler.rkt"
+(require "../descriptors.rkt"
+         "../compiler/compiler.rkt"
          racket/syntax
          syntax/parse
          syntax/stx

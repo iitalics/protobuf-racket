@@ -1,7 +1,7 @@
 #lang racket/base
 (module+ test
   (require rackunit
-           "../private/codegen-macros.rkt")
+           "../private/codegen/macros.rkt")
 
 
   ;;; test basic enum usage

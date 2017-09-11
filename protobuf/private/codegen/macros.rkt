@@ -3,10 +3,10 @@
                      syntax/parse
                      (only-in racket/syntax format-id)
                      (only-in racket/sequence in-syntax)
-                     "descriptors.rkt"
                      "codegen.rkt"
-                     "compiler/dependencies.rkt"
-                     "compiler/compiler.rkt"))
+                     "../descriptors.rkt"
+                     "../compiler/dependencies.rkt"
+                     "../compiler/compiler.rkt"))
 
 (provide generate-protobuf)
 
