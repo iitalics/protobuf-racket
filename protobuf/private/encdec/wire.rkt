@@ -84,20 +84,24 @@
   (or/c 'varint '64-bit '32-bit 'length-delim))
 
 
-;; reads and returns two values: the field number, and the wire type
-;; of the field. encoded using just a varint and a bit-shift.
+;; reads and returns a cons of two values: the field number, and the wire
+;; type of the field. encoded using just a varint and a bit-shift.
 ;;
-;; read-field-number+type : [input-port?] -> exact-integer? wire-type?
-(define (read-field-number+type [in (current-input-port)])
-  (define n (read-varint in))
-  (define wire-type (bitwise-and n 7))
-  (define field-num (arithmetic-shift n -3))
+;; decode-field-number+type : bytes? pos? -> pos? (cons/c exact-integer? wire-type?)
+(define (decode-field-number+type bs i)
+  (define-values (j type+num) (decode-varint bs i))
+  (define wire-type (bitwise-and type+num 7))
+  (define field-num (arithmetic-shift type+num -3))
   (case wire-type
-    [(0) (values field-num 'varint)]
-    [(1) (values field-num '64-bit)]
-    [(2) (values field-num 'length-delim)]
-    [(5) (values field-num '32-bit)]
+    [(0) (values j (cons field-num 'varint))]
+    [(1) (values j (cons field-num '64-bit))]
+    [(2) (values j (cons field-num 'length-delim))]
+    [(5) (values j (cons field-num '32-bit))]
     [else
      (raise (exn:fail:read "encountered invalid or deprecated wire type"
                            (current-continuation-marks)
                            '()))]))
+
+;; read-field-number+type : [input-port?] -> (or/c eof-object? (cons/c exact-integer? wire-type?))
+(define-reader-from-decoder read-field-number+type
+  decode-field-number+type)

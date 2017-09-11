@@ -41,17 +41,16 @@
   (check-= (read-double (open-input-bytes (bytes 179 37 208 191 0 44 244 64))) 82624.047 0.01)
   (check-= (read-float  (open-input-bytes (bytes 6 96 161 71))) 82624.047 0.01)
 
-
   (for ([repr '(8      21     66           9)]
         [num  '(1      2      8            1)]
         [type '(varint 32-bit length-delim 64-bit)])
     (define bs
       (with-output-to-bytes
         (λ () (write-varint repr))))
-    (define-values (n ty)
+    (define n+ty
       (read-field-number+type
        (open-input-bytes bs)))
-    (check-equal? n num)
-    (check-equal? ty type))
+    (check-equal? (car n+ty) num)
+    (check-equal? (cdr n+ty) type))
 
   )
