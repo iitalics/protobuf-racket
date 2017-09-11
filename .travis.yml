@@ -48,6 +48,7 @@ install:
  - raco pkg install --deps search-auto
 
 before_script:
+ - cd protobuf
 
 # Here supply steps such as raco make, raco test, etc.  You can run
 # `raco pkg install --deps search-auto` to install any required
