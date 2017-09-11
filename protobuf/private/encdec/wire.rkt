@@ -35,34 +35,47 @@
       (- 0 (arithmetic-shift x -1) 1)))
 
 
-
-(define-syntax define-fixed-bytes-reader
+;; (define-fixed-bytes-r/d T bits (func args ...))
+;; defines functions 'read-T' and 'decode-T' which read
+;; the given number of bits, and send them to the given
+;; function.
+;; the first _ in the args list is replaced by the input
+;; bytes, and the second _ in the args list is replaced
+;; by the start index and length
+;;
+;; e.g.
+;;    (define-fixed-bytes-d/r fixed64 64 (integer-bytes->integer _ #f #f _))
+;;  will call
+;;    (integer-bytes->integer bs #f #f start-idx 8)
+(define-syntax define-fixed-bytes-d/r
   (syntax-parser
-    [(_ reader bits:nat (func (~datum _) arg-expr ... (~datum _)))
-     #:with byts (datum->syntax this-syntax
-                                (/ (syntax-e #'bits) 8))
-     #'(define (reader [in (current-input-port)]
-                       [tmp (make-bytes byts)])
+    [(_ T bits:nat (func pre-arg ... (~datum _) mid-arg ... (~datum _) post-arg ...))
+     #:with byts (datum->syntax this-syntax (/ (syntax-e #'bits) 8))
+     #:with decode-T (format-id #'T "decode-~a" #'T)
+     #:with read-T (format-id #'T "read-~a" #'T)
+     #'(begin
+         (define (decode-T bs i)
+           (check-len bs i byts)
+           (values (func pre-arg ... bs
+                         mid-arg ... 0 byts
+                         post-arg ...)
+                   (+ i byts)))
+         (define-reader-from-decoder read-T decode-T))]))
 
-         (unless (eq? (read-bytes! tmp in 0 byts) byts)
-           (raise (exn:fail:read:eof "port ended while reading protobuf messge"
-                                     (current-continuation-marks)
-                                     '())))
-         (func tmp
-               arg-expr ...
-               0 byts))]))
 
-(define-fixed-bytes-reader read-fixed64 64
+;; decode-T : bytes? pos? -> X pos?
+;; read-T : [input-port?] -> exact-integer?
+(define-fixed-bytes-d/r fixed64 64
   (integer-bytes->integer _ #f #f _))
-(define-fixed-bytes-reader read-sfixed64 64
+(define-fixed-bytes-d/r sfixed64 64
   (integer-bytes->integer _ #t #f _))
-(define-fixed-bytes-reader read-double 64
+(define-fixed-bytes-d/r double 64
   (floating-point-bytes->real _ #f _))
-(define-fixed-bytes-reader read-fixed32 32
+(define-fixed-bytes-d/r fixed32 32
   (integer-bytes->integer _ #f #f _))
-(define-fixed-bytes-reader read-sfixed32 32
+(define-fixed-bytes-d/r sfixed32 32
   (integer-bytes->integer _ #t #f _))
-(define-fixed-bytes-reader read-float 32
+(define-fixed-bytes-d/r float 32
   (floating-point-bytes->real _ #f _))
 
 
