@@ -1,6 +1,6 @@
 #lang racket/base
 (module+ test
-  (require rackunit
+  (require rackunit racket/port
            "../private/encdec/varint.rkt"
            (for-syntax racket/base syntax/parse))
 
@@ -36,5 +36,11 @@
   (check-exn exn:fail:read?
              (λ ()
                (varint-test [128] => 0)))
+
+  (with-input-from-bytes (bytes 172 2 144 3)
+    (λ ()
+      (for ([x (in-port read-varint)]
+            [y (in-list '(300 400))])
+        (check-equal? x y x))))
 
   )

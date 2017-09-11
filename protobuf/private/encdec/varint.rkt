@@ -1,6 +1,6 @@
 #lang racket/base
 (require "util.rkt")
-(provide decode-varint write-varint)
+(provide decode-varint read-varint write-varint)
 
 (define (msb-of x)
   (bitwise-and x #x80))
@@ -19,6 +19,9 @@
     (if (zero? (msb-of b))
         (values acc+ (add1 i))
         (loop acc+ (add1 i)))))
+
+;; read-varint : [input-port?] -> (or/c eof-object? exact-nonnegative-integer?)
+(define-reader-from-decoder read-varint decode-varint)
 
 ;; write-varint : exact-nonnegative-integer? [output-port?] -> void
 (define (write-varint x [out (current-output-port)])
