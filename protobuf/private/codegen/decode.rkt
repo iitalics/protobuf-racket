@@ -48,10 +48,10 @@
 
       (pattern 'int32
                #:with wire-type #'varint #:with decoder #'decode-varint
-               #:attr replace (transf #'uint->sint32/2c))
+               #:attr replace (transf #'uint->sint/2c #'32))
       (pattern 'int64
                #:with wire-type #'varint #:with decoder #'decode-varint
-               #:attr replace (transf #'uint->sint64/2c))
+               #:attr replace (transf #'uint->sint/2c #'64))
 
       (pattern 'bytes
                #:with wire-type #'length-delim #:with decoder #'decode-length-delim

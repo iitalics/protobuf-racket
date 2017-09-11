@@ -6,8 +6,6 @@
                      syntax/parse))
 
 (provide uint->sint/2c
-         uint->sint32/2c
-         uint->sint64/2c
          uint->sint/zz
          decode-fixed64 decode-sfixed64 decode-double
          decode-fixed32 decode-sfixed32 decode-float
@@ -25,11 +23,6 @@
   (if (zero? (bitwise-and (arithmetic-shift 1 (sub1 n-bits)) x))
       x
       (- x (arithmetic-shift 1 n-bits))))
-
-(define (uint->sint32/2c x)
-  (uint->sint/2c x 32))
-(define (uint->sint64/2c x)
-  (uint->sint/2c x 64))
 
 ;; convert unsigned integer to signed integer
 ;; using "ZigZag", e.g.
