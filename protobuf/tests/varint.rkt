@@ -7,10 +7,9 @@
   (define-syntax varint-test
     (syntax-rules (=> <= <=>)
       [(_ [in-b ...] => out)
-       (check-equal? (read-varint (open-input-bytes
-                                   (bytes in-b ...)))
-                     out
-                     (format "~a => ~a" (list in-b ...) out))]
+       (let-values ([(x i) (decode-varint (bytes in-b ...) 0)])
+         (check-equal? x out (format "~a => ~a" (list in-b ...) out))
+         (check-equal? i (length '(in-b ...))))]
 
       [(_ [out-b ...] <= in)
        (let ([port (open-output-bytes)])
@@ -33,5 +32,9 @@
 
   (varint-test [172 2] <=> 300)
   (varint-test [206 194 241 5] <=> 12345678)
+
+  (check-exn exn:fail:read?
+             (λ ()
+               (varint-test [128] => 0)))
 
   )
