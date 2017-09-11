@@ -162,20 +162,38 @@
   (match-define (struct dsctor:message (_ _ _ fields oneofs _ _ _ _))
     descriptor)
 
+  (define-values (oneof-fields regular-fields)
+    (partition dsctor:field-oneof fields))
+
+  (define map-fields
+    (filter map-field? fields))
+
+  (define fld-index-start
+    (* 2 (length oneofs)))
+
   (syntax-parse (generate-temporaries #'(  %msg-strct %mk-msg %msg? %get %set  ))
     [(  msg-strct make-strct strct? idx-get idx-set!  )
+
      #:with m? (implementation-pred-id impl)
      #:with def-m (implementation-default-id impl)
      #:with mk-m (generate-temporary #'%mk-m)
+     #:with (m-get-oo-case ...) (generate-temporaries oneofs)
+     #:with (m-get-fld ...) (generate-temporaries regular-fields)
+     #:with (m-has-oofld? ...) (generate-temporaries oneof-fields)
+     #:with (m-get-oofld ...) (generate-temporaries oneof-fields)
+     #:with (m-mapfld-ref ...) (generate-temporaries map-fields)
 
-     #:do [(define-values (oneof-fields regular-fields)
-             (partition dsctor:field-oneof fields))
-
-           (define map-fields
-             (filter map-field? fields))
-
-           (define fld-index-start
-             (* 2 (length oneofs)))]
+     #:with [(fld-index
+              fld-kw
+              fld-init-arg
+              fld-default-expr) ...]
+            (for/list ([dsc (in-list regular-fields)]
+                       [i (in-naturals fld-index-start)])
+              (list #`#,i
+                    (string->keyword (dsctor-lisp-name dsc))
+                    (generate-temporary #'%msg-init)
+                    (type-default-stx (dsctor:field-type dsc)
+                      #:repeated? (dsctor:field-repeated? dsc))))
 
      #:with [(oo-index
               oo-kw
@@ -193,18 +211,6 @@
                     (generate-temporary #'%oo-init-case)
                     (format "keyword argument #:~a must be supplied when #:~a-case is"
                             name name)))
-
-     #:with [(fld-index
-              fld-kw
-              fld-init-arg
-              fld-default-expr) ...]
-            (for/list ([dsc (in-list regular-fields)]
-                       [i (in-naturals fld-index-start)])
-              (list #`#,i
-                    (string->keyword (dsctor-lisp-name dsc))
-                    (generate-temporary #'%msg-init)
-                    (type-default-stx (dsctor:field-type dsc)
-                      #:repeated? (dsctor:field-repeated? dsc))))
 
      #:with [(oofld-index
               oofld-oneof-index
@@ -238,11 +244,6 @@
             #'[(oo-init-arg-case oo-init-arg) ...]
 
      #:with fullname-sym (string->symbol (implementation-name impl))
-     #:with (m-get-oo-case ...) (generate-temporaries oneofs)
-     #:with (m-get-fld ...) (generate-temporaries regular-fields)
-     #:with (m-has-oofld? ...) (generate-temporaries oneof-fields)
-     #:with (m-get-oofld ...) (generate-temporaries oneof-fields)
-     #:with (m-mapfld-ref ...) (generate-temporaries map-fields)
 
      #:do [(define (renamings/format fmt ids descriptors)
              (stx-map (λ (id dsc) (renaming id (format fmt (dsctor-lisp-name dsc))))
@@ -272,11 +273,11 @@
             (make-strct oo-inits ... ...
                         fld-init-arg ...))
 
-          (define (m-get-oo-case m)
-            (idx-get m oo-index)) ...
-
           (define (m-get-fld m)
             (idx-get m fld-index)) ...
+
+          (define (m-get-oo-case m)
+            (idx-get m oo-index)) ...
 
           (define (m-has-oofld? m)
             (eq? 'oofld-case-name
@@ -293,6 +294,8 @@
 
           (define m? strct?)
           (define def-m (mk-m))))]))
+
+
 
 
 (define (builtin-type-default-stx ty)

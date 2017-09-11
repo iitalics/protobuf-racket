@@ -152,9 +152,9 @@
                                #:speed [%s (and %sc~ (error '%sc-err))]
                                #:duration [%d (and _ (error '_))])
                 (_ %sc~~ %s~ %dc~ %d~ %p~))
+              (define (%precise _)       (_     _ 4))
               (define (%speed-case _)    (%get  _ 0))
               (define (%duration-case _) (%get~ _ 2))
-              (define (%precise _)       (_     _ 4))
               (define (%has-fwd? _) (eq? 'fwd (_ _ 0)))
               (define (%has-bwd? _) (eq? 'bwd (_ _ 0)))
               (define (%has-turn? _) (eq? 'turn (_ _ 0)))
