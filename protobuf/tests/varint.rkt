@@ -7,9 +7,9 @@
   (define-syntax varint-test
     (syntax-rules (=> <= <=>)
       [(_ [in-b ...] => out)
-       (let-values ([(x i) (decode-varint (bytes in-b ...) 0)])
+       (let-values ([(n x) (decode-varint (bytes in-b ...) 0)])
          (check-equal? x out (format "~a => ~a" (list in-b ...) out))
-         (check-equal? i (length '(in-b ...))))]
+         (check-equal? n (length '(in-b ...))))]
 
       [(_ [out-b ...] <= in)
        (let ([port (open-output-bytes)])

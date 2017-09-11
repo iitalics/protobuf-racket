@@ -55,15 +55,14 @@
      #:with read-T (format-id #'T "read-~a" #'T)
      #'(begin
          (define (decode-T bs i)
-           (check-len bs i byts)
-           (values (func pre-arg ... bs
+           (values (check-len bs i byts)
+                   (func pre-arg ... bs
                          mid-arg ... 0 byts
-                         post-arg ...)
-                   (+ i byts)))
+                         post-arg ...)))
          (define-reader-from-decoder read-T decode-T))]))
 
 
-;; decode-T : bytes? pos? -> X pos?
+;; decode-T : bytes? pos? -> pos? X
 ;; read-T : [input-port?] -> exact-integer?
 (define-fixed-bytes-d/r fixed64 64
   (integer-bytes->integer _ #f #f _))

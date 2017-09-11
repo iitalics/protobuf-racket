@@ -3,7 +3,7 @@
 
 ;; write-X : X [output-port?] -> void
 
-;; decode-X : bytes? pos? -> X pos?
+;; decode-X : bytes? pos? -> pos? X
 ;; decodes an object, returning that object and the
 ;; new position in the byte stream
 
@@ -23,7 +23,7 @@
 
 
 ;; (define-reader-from-decoder reader decoder)
-;;   decoder : bytes? pos? -> X pos?
+;;   decoder : bytes? pos? -> pos? X
 ;;
 ;; generate a function 'reader' which reads bytes from a port
 ;; and parses them with the given decoder function, such that
@@ -45,6 +45,6 @@
              (loop (* 2 siz))]
 
             [else
-             (let-values ([(x n) (dec bs 0)])
+             (let-values ([(n x) (dec bs 0)])
                (read-bytes! bs in 0 n)
                x)]))))))

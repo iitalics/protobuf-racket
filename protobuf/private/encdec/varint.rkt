@@ -9,16 +9,16 @@
 (define (pop-lsbs x)
   (arithmetic-shift x -7))
 
-;; decode-varint : bytes? pos? -> nat? pos?
+;; decode-varint : bytes? pos? -> pos? nat?
 (define (decode-varint bs i0)
-  (let loop ([acc 0] [i i0])
+  (let loop ([i i0] [acc 0])
     (check-len bs i 1)
     (define b (bytes-ref bs i))
     (define shf (* 7 (- i i0)))
     (define acc+ (+ acc (arithmetic-shift (lsbs-of b) shf)))
     (if (zero? (msb-of b))
-        (values acc+ (add1 i))
-        (loop acc+ (add1 i)))))
+        (values (add1 i) acc+)
+        (loop (add1 i) acc+))))
 
 ;; read-varint : [input-port?] -> (or/c eof-object? exact-nonnegative-integer?)
 (define-reader-from-decoder read-varint decode-varint)
